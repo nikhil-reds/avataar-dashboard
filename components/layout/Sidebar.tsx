@@ -12,7 +12,7 @@ import {
   FileEdit,
   Video,
   Brain,
-  Cpu,
+  MessagesSquare,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -20,12 +20,12 @@ interface SidebarProps {
   activeTab?: TabId;
   onSelectTab?: (id: TabId) => void;
   brandName?: string;
-  localModelName?: string;
 }
 
 const TAB_ICONS: Record<TabId, React.ReactNode> = {
   dash: <LayoutDashboard className="w-4 h-4" />,
   logs: <Activity className="w-4 h-4" />,
+  conversations: <MessagesSquare className="w-4 h-4" />,
   catalogue: <Database className="w-4 h-4" />,
   ingest: <FileUp className="w-4 h-4" />,
   manual: <FileEdit className="w-4 h-4" />,
@@ -38,7 +38,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   activeTab,
   onSelectTab,
   brandName = 'Rubenius',
-  localModelName = 'Llama 3.1 8B · local',
 }) => {
   const pathname = usePathname();
 
@@ -56,7 +55,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* Navigation Links */}
-      <nav className="flex flex-col gap-1 overflow-y-auto pr-1">
+      <nav className="flex flex-col gap-1 overflow-y-auto pr-1 mb-auto">
         {tabs.map((tab) => {
           const isActive = activeTab
             ? tab.id === activeTab
@@ -112,24 +111,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         })}
       </nav>
 
-      {/* Inference Status Box */}
-      <div className="mt-auto flex flex-col gap-2 p-3 rounded-xl bg-[oklch(0.29_0.014_255)] border border-white/5">
-        <div className="font-mono text-[9.5px] tracking-wider uppercase text-[oklch(0.74_0.02_255)] flex items-center gap-1.5">
-          <Cpu className="w-3 h-3 text-indigo-400" />
-          inference route
-        </div>
-        <div className="text-[13px] font-semibold text-white truncate">
-          {localModelName}
-        </div>
-        <div className="flex items-center gap-1.5 text-[11.5px] text-[oklch(0.82_0.015_255)]">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-          <span className="w-2 h-2 rounded-full bg-emerald-400 -ml-3.5" />
-          <span>healthy · 12.3 tok/s</span>
-        </div>
-        <div className="text-[11.5px] text-[oklch(0.74_0.02_255)] border-t border-[oklch(0.36_0.014_255)] pt-2 mt-0.5">
-          fallback → Gemini 2.5 Flash
-        </div>
-      </div>
     </aside>
   );
 };
