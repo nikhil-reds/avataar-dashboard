@@ -1,9 +1,10 @@
-# Use postgres/example user/password credentials
+# Local Postgres for the Avataar admin console.
+# Credentials are development-only — do not reuse them anywhere deployed.
 
 services:
 
   db:
-    image: postgres
+    image: postgres:17
     restart: always
     # set shared memory limit when using docker compose
     shm_size: 128mb
@@ -14,10 +15,26 @@ services:
     #    tmpfs:
     #      size: 134217728 # 128*2^20 bytes = 128Mb
     environment:
+      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: example
+      POSTGRES_DB: avataar
+    ports:
+      - "5432:5432"
+    volumes:
+      # Named volume, so conversations survive `docker compose down`. Without it the
+      # container's data directory is discarded with the container.
+      - avataar_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d avataar"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   adminer:
     image: adminer
     restart: always
     ports:
       - 8080:8080
+
+volumes:
+  avataar_db_data:
