@@ -1,4 +1,12 @@
-export type TabId = 'dash' | 'logs' | 'catalogue' | 'ingest' | 'manual' | 'avatar' | 'memory';
+export type TabId =
+  | 'dash'
+  | 'logs'
+  | 'conversations'
+  | 'catalogue'
+  | 'ingest'
+  | 'manual'
+  | 'avatar'
+  | 'memory';
 
 export interface NavTab {
   id: TabId;
@@ -11,6 +19,9 @@ export interface NavTab {
   subtitle: string;
   cta: string;
 }
+
+// View models for the dashboard cards. Every value is computed from stored rows in
+// lib/dashboard.ts — the shapes below only describe how a figure is presented.
 
 export interface StatItem {
   label: string;
@@ -33,78 +44,7 @@ export interface LatencyItem {
   color: string;
 }
 
-export interface LogRow {
-  time: string;
-  event: string;
-  session: string;
-  model: string;
-  latency: string;
-  kind: 'chat' | 'render' | 'ingest';
-  status: string;
-}
-
-export interface PipelineStep {
-  name: string;
-  ms: string;
-  color: string;
-}
-
-export interface SkuRow {
-  sku: string;
-  name: string;
-  category: string;
-  price: string;
-  source: string;
-  state: 'live' | 'review' | 'draft';
-}
-
-export interface IngestJob {
-  file: string;
-  state: 'done' | 'extracting' | 'queued' | 'failed';
-  pct: string;
-  note: string;
-  page: number;
-}
-
-export interface ReviewField {
-  k: string;
-  v: string;
-}
-
-export interface ReviewRow {
-  name: string;
-  conf: string;
-  fields: ReviewField[];
-}
-
-export interface Turn {
-  who: 'shopper' | 'avatar' | 'system';
-  text: string;
-  time: string;
-}
-
-export interface RetainedFact {
-  k: string;
-  v: string;
-  exp: string;
-}
-
-export interface SessionItem {
-  name: string;
-  summary: string;
-  ttl: string;
-  fresh: boolean;
-  turns: Turn[];
-  facts: RetainedFact[];
-}
-
-export interface AvatarRender {
-  script: string;
-  voice: string;
-  length: string;
-  state: 'done' | 'rendering' | 'queued' | 'failed';
-}
-
+/** Local form state for manual catalogue entry. */
 export interface ManualFormState {
   sku: string;
   name: string;
