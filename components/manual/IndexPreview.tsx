@@ -24,8 +24,8 @@ export const IndexPreview: React.FC<IndexPreviewProps> = ({
       talking_points: talkingPoints
         ? talkingPoints.split('\n').filter(Boolean)
         : [],
-      source: 'manual',
-      embed: 'local · bge-small-en',
+      source: 'Manual',
+      state: 'LIVE',
     },
     null,
     2
@@ -35,7 +35,7 @@ export const IndexPreview: React.FC<IndexPreviewProps> = ({
     <div className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 flex flex-col gap-3 shadow-sm">
       <div className="text-sm font-semibold text-zinc-900 dark:text-white flex items-center gap-1.5">
         <Code2 className="w-4 h-4 text-indigo-500" />
-        <span>Indexing preview</span>
+        <span>Row preview</span>
       </div>
 
       <pre className="font-mono text-[11.5px] leading-relaxed text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-950 border border-zinc-200/80 dark:border-zinc-800 rounded-lg p-3 overflow-x-auto whitespace-pre-wrap">
@@ -43,7 +43,8 @@ export const IndexPreview: React.FC<IndexPreviewProps> = ({
       </pre>
 
       <div className="text-xs text-zinc-500">
-        Saved entries are chunked, embedded locally, and become retrievable by the avatar within about 30 seconds.
+        This is the row that will be written to the catalogue. Embedding and retrieval
+        are not wired up yet, so the avatar does not read from it.
       </div>
     </div>
   );
