@@ -18,6 +18,11 @@ export const LatencyRoute: React.FC<LatencyRouteProps> = ({ latencyItems }) => {
           <div className="font-mono text-[11px] text-zinc-400">p50 / p95 ms</div>
         </div>
         <div className="p-4 flex flex-col gap-4">
+          {latencyItems.length === 0 && (
+            <div className="py-6 text-center text-xs text-zinc-400">
+              No latency measured yet. Numbers appear once requests have been served.
+            </div>
+          )}
           {latencyItems.map((item, idx) => (
             <div key={idx} className="flex flex-col gap-1.5">
               <div className="flex justify-between text-xs">
@@ -40,7 +45,7 @@ export const LatencyRoute: React.FC<LatencyRouteProps> = ({ latencyItems }) => {
         </div>
       </div>
       <div className="text-xs text-zinc-500 border-t border-zinc-100 dark:border-zinc-800 p-4 bg-zinc-50/30 dark:bg-zinc-900/30">
-        Local model answers 78% of turns; catalogue-grounded reasoning still routes to Gemini when confidence &lt; 0.6.
+        Measured from recorded requests over the last 24 hours.
       </div>
     </div>
   );
