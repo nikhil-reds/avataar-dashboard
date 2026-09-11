@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { Sidebar } from "../components/layout/Sidebar";
-import { TAB_DEFINITIONS } from "../data/mockData";
+
 import "./globals.css";
 
 const geistSans = Geist({
@@ -42,6 +41,7 @@ export default function RootLayout({
       <body className="min-h-full">
         <div className="flex min-h-screen bg-[var(--background)] text-zinc-900 dark:text-zinc-100 transition-colors">
           {/* Persistent across route changes — the layout does not remount. */}
+          
 
           <main className="flex-1 min-w-0 flex flex-col">{children}</main>
         </div>
