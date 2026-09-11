@@ -1,5 +1,6 @@
 import {
   NavTab,
+  TabId,
   StatItem,
   ServiceHealthItem,
   LatencyItem,
@@ -14,6 +15,7 @@ import {
 export const TAB_DEFINITIONS: NavTab[] = [
   {
     id: 'dash',
+    href: '/dashboard',
     label: 'Dashboard',
     badge: '',
     crumb: 'overview',
@@ -24,6 +26,7 @@ export const TAB_DEFINITIONS: NavTab[] = [
   },
   {
     id: 'logs',
+    href: '/activelog',
     label: 'Activity logs',
     badge: '18',
     crumb: 'observability',
@@ -34,6 +37,7 @@ export const TAB_DEFINITIONS: NavTab[] = [
   },
   {
     id: 'catalogue',
+    href: '/catalogue',
     label: 'Catalogue',
     badge: '',
     crumb: 'content',
@@ -44,6 +48,7 @@ export const TAB_DEFINITIONS: NavTab[] = [
   },
   {
     id: 'ingest',
+    href: '/ingest',
     label: 'PDF ingest',
     badge: '3',
     crumb: 'content',
@@ -54,6 +59,7 @@ export const TAB_DEFINITIONS: NavTab[] = [
   },
   {
     id: 'manual',
+    href: '/manual',
     label: 'Manual entry',
     badge: '',
     crumb: 'content',
@@ -64,6 +70,7 @@ export const TAB_DEFINITIONS: NavTab[] = [
   },
   {
     id: 'avatar',
+    href: '/avatar',
     label: 'Avatar studio',
     badge: '2',
     crumb: 'avatar',
@@ -74,6 +81,7 @@ export const TAB_DEFINITIONS: NavTab[] = [
   },
   {
     id: 'memory',
+    href: '/memory',
     label: 'Memory',
     badge: '',
     crumb: 'avatar',
@@ -83,6 +91,10 @@ export const TAB_DEFINITIONS: NavTab[] = [
     cta: 'Purge expired',
   },
 ];
+
+export const TAB_BY_ID = Object.fromEntries(
+  TAB_DEFINITIONS.map((tab) => [tab.id, tab])
+) as Record<TabId, NavTab>;
 
 export const INITIAL_STATS: StatItem[] = [
   {
