@@ -55,20 +55,24 @@ enum SkuState {
 }
 
 // Observability & Request Logs
+// Written by lib/activity.ts from the real request paths. Every field is a measurement,
+// not a label: latency is milliseconds actually elapsed, tokens come from the provider.
 model ActivityLog {
-  id        String   @id @default(uuid())
-  time      String
-  event     String
-  session   String
-  model     String
-  latency   String
-  kind      LogKind
-  status    String
-  cost      Decimal? @db.Decimal(8, 2)
-  tokensIn  Int?
-  tokensOut Int?
-  createdAt DateTime @default(now())
+  id         String     @id @default(uuid())
+  event      String
+  kind       LogKind
+  status     LogStatus  @default(OK)
+  sessionId  String?
+  model      String?
+  latencyMs  Int?
+  cost       Decimal?   @db.Decimal(10, 4)
+  tokensIn   Int?
+  tokensOut  Int?
+  detail     String?
+  createdAt  DateTime   @default(now())
 
+  @@index([createdAt(sort: Desc)])
+  @@index([kind, createdAt(sort: Desc)])
   @@map("activity_logs")
 }
 
@@ -76,6 +80,13 @@ enum LogKind {
   CHAT
   RENDER
   INGEST
+  SESSION
+}
+
+enum LogStatus {
+  OK
+  ERROR
+  ESCALATED
 }
 
 // PDF Ingest Extraction Jobs
@@ -83,7 +94,7 @@ model IngestJob {
   id             String         @id @default(uuid())
   file           String
   state          IngestJobState @default(QUEUED)
-  pct            String         @default("0%")
+  pct            Int            @default(0)
   note           String?
   page           Int            @default(1)
   totalPages     Int?
@@ -127,7 +138,7 @@ model AvatarRender {
   id        String       @id @default(uuid())
   script    String       @db.Text
   voice     String
-  length    String?
+  durationSec Int?
   state     RenderState  @default(QUEUED)
   videoUrl  String?
   createdAt DateTime     @default(now())
@@ -144,31 +155,57 @@ enum RenderState {
 }
 
 // Conversational Shopper Memory Store
+// One row per avatar conversation. Denormalised turnCount/durationSec exist so the
+// admin console can sort on them with an index instead of a computed aggregate.
 model ShopperSession {
-  id        String         @id @default(uuid())
-  sessionId String         @unique
-  name      String
-  summary   String?
-  ttl       String
-  fresh     Boolean        @default(true)
-  turns     SessionTurn[]
-  facts     RetainedFact[]
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
+  id              String         @id @default(uuid())
+  // HeyGen LiveAvatar session id (`session.sessionId`), for correlating back to their dashboard.
+  avatarSessionId String?        @unique
+  // Derived from the shopper's first question once it arrives.
+  title           String?
+  summary         String?
+  status          SessionStatus  @default(LIVE)
+  startedAt       DateTime       @default(now())
+  endedAt         DateTime?
+  durationSec     Int?
+  turnCount       Int            @default(0)
+  lastTurnAt      DateTime?
+  expiresAt       DateTime?
+  locale          String?
+  turns           SessionTurn[]
+  facts           RetainedFact[]
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 
+  @@index([startedAt(sort: Desc)])
+  @@index([status, startedAt(sort: Desc)])
+  @@index([turnCount(sort: Desc)])
   @@map("shopper_sessions")
 }
 
+enum SessionStatus {
+  LIVE
+  ENDED
+  ERROR
+}
+
 // Chat Turns in Session
+// `seq` is assigned client-side and is the authoritative ordering: batched turns can
+// share a timestamp, so ordering on time alone would eventually put an answer above
+// its question. `eventId` is the SDK's event_id, making retried flushes idempotent.
 model SessionTurn {
   id        String         @id @default(uuid())
   sessionId String
   session   ShopperSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  seq       Int
+  eventId   String         @unique
   who       SpeakerRole
   text      String         @db.Text
-  time      String
+  spokenAt  DateTime
   createdAt DateTime       @default(now())
 
+  @@unique([sessionId, seq])
+  @@index([sessionId, seq])
   @@map("session_turns")
 }
 
@@ -185,8 +222,9 @@ model RetainedFact {
   session   ShopperSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   key       String
   value     String
-  exp       String
+  expiresAt DateTime?
   createdAt DateTime       @default(now())
 
+  @@index([sessionId])
   @@map("retained_facts")
 }
