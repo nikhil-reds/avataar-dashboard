@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { LogKind, LogStatus } from '@prisma/client';
+import { recordActivity } from '@/lib/activity';
 import { RUBENIUS_KNOWLEDGE } from '../../constants/knowledge';
 
 const GEMINI_MODEL = 'gemini-2.0-flash';
@@ -41,6 +43,7 @@ export async function POST(request: Request) {
     { role: 'user', parts: [{ text: message }] },
   ];
 
+  const startedAt = Date.now();
   const res = await fetch(
     `${GEMINI_API_BASE}/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
     {
@@ -59,11 +62,30 @@ export async function POST(request: Request) {
 
   if (!res.ok) {
     const text = await res.text();
+    await recordActivity({
+      event: 'Gemini request failed',
+      kind: LogKind.CHAT,
+      status: LogStatus.ERROR,
+      model: GEMINI_MODEL,
+      latencyMs: Date.now() - startedAt,
+      detail: text.slice(0, 500),
+    });
     return NextResponse.json({ error: text }, { status: res.status });
   }
 
   const data = await res.json();
+  const latencyMs = Date.now() - startedAt;
   const response = data.candidates?.[0]?.content?.parts?.[0]?.text ?? 'No response generated.';
+
+  // Token counts come from the provider's own usage report, not an estimate.
+  await recordActivity({
+    event: message.slice(0, 120),
+    kind: LogKind.CHAT,
+    model: GEMINI_MODEL,
+    latencyMs,
+    tokensIn: data.usageMetadata?.promptTokenCount ?? null,
+    tokensOut: data.usageMetadata?.candidatesTokenCount ?? null,
+  });
 
   return NextResponse.json({ response });
 }
