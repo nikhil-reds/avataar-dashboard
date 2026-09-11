@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@heygen/liveavatar-web-sdk": "^0.0.18",
     "@prisma/client": "^6.19.3",
     "@swc/helpers": "^0.5.23",
     "lucide-react": "^1.44.0",
