@@ -2,6 +2,8 @@ export type TabId = 'dash' | 'logs' | 'catalogue' | 'ingest' | 'manual' | 'avata
 
 export interface NavTab {
   id: TabId;
+  /** URL this tab lives at, e.g. `/dashboard`. */
+  href: string;
   label: string;
   badge: string;
   crumb: string;
