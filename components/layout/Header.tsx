@@ -7,7 +7,8 @@ import { ThemeToggle } from './ThemeToggle';
 
 interface HeaderProps {
   activeTabDef: NavTab;
-  onPrimaryClick: () => void;
+  /** Omitted on routes whose CTA has no action yet. */
+  onPrimaryClick?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
