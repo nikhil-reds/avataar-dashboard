@@ -24,7 +24,11 @@ export const metadata: Metadata = {
 // applied before the first paint (no light-then-dark flash on reload).
 const THEME_SCRIPT = `(function(){try{var t=localStorage.getItem("theme");if(t!=="light"&&t!=="dark"){t=window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}document.documentElement.setAttribute("data-theme",t)}catch(e){}})()`;
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html
       lang="en"
@@ -38,7 +42,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full">
         <div className="flex min-h-screen bg-[var(--background)] text-zinc-900 dark:text-zinc-100 transition-colors">
           {/* Persistent across route changes — the layout does not remount. */}
-          <Sidebar tabs={TAB_DEFINITIONS} />
 
           <main className="flex-1 min-w-0 flex flex-col">{children}</main>
         </div>
