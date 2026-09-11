@@ -1,6 +1,8 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { NavTab, TabId } from '../../types';
 import {
   LayoutDashboard,
@@ -15,8 +17,6 @@ import {
 
 interface SidebarProps {
   tabs: NavTab[];
-  activeTab: TabId;
-  onSelectTab: (id: TabId) => void;
   brandName?: string;
   localModelName?: string;
 }
@@ -33,11 +33,11 @@ const TAB_ICONS: Record<TabId, React.ReactNode> = {
 
 export const Sidebar: React.FC<SidebarProps> = ({
   tabs,
-  activeTab,
-  onSelectTab,
   brandName = 'Rubenius',
   localModelName = 'Llama 3.1 8B · local',
 }) => {
+  const pathname = usePathname();
+
   return (
     <aside className="w-60 flex-shrink-0 bg-[var(--sidebar-bg)] text-[var(--sidebar-fg)] flex flex-col gap-5 p-[22px_14px] sticky top-0 self-start h-screen select-none border-r border-[var(--sidebar-edge)] transition-colors">
       {/* Brand Header */}
@@ -54,11 +54,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Navigation Links */}
       <nav className="flex flex-col gap-1 overflow-y-auto pr-1">
         {tabs.map((tab) => {
-          const isActive = tab.id === activeTab;
+          const isActive = pathname === tab.href;
           return (
-            <button
+            <Link
               key={tab.id}
-              onClick={() => onSelectTab(tab.id)}
+              href={tab.href}
+              aria-current={isActive ? 'page' : undefined}
               className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13.5px] font-medium transition-all duration-150 cursor-pointer ${
                 isActive
                   ? 'bg-[var(--sidebar-active)] text-[var(--sidebar-active-fg)] shadow-xs'
@@ -77,7 +78,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   {tab.badge}
                 </span>
               )}
-            </button>
+            </Link>
           );
         })}
       </nav>
