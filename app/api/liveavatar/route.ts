@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { LogKind, LogStatus } from '@prisma/client';
+import { recordActivity } from '@/lib/activity';
 
 const API_BASE = 'https://api.liveavatar.com';
 // Free sandbox avatar — used when LIVEAVATAR_AVATAR_ID is not set
@@ -27,6 +29,7 @@ export async function POST() {
     (body.avatar_persona as Record<string, unknown>).context_id = contextId;
   }
 
+  const startedAt = Date.now();
   const res = await fetch(`${API_BASE}/v1/sessions/token`, {
     method: 'POST',
     headers: {
@@ -38,10 +41,27 @@ export async function POST() {
 
   if (!res.ok) {
     const text = await res.text();
+    await recordActivity({
+      event: 'LiveAvatar token request failed',
+      kind: LogKind.SESSION,
+      status: LogStatus.ERROR,
+      model: 'liveavatar',
+      latencyMs: Date.now() - startedAt,
+      detail: text.slice(0, 500),
+    });
     return NextResponse.json({ error: text }, { status: res.status });
   }
 
   const { data } = await res.json();
+
+  await recordActivity({
+    event: 'LiveAvatar token issued',
+    kind: LogKind.SESSION,
+    model: 'liveavatar',
+    latencyMs: Date.now() - startedAt,
+    detail: isSandbox ? 'sandbox avatar' : 'context ' + contextId,
+  });
+
   return NextResponse.json({ session_token: data.session_token });
 }
 
