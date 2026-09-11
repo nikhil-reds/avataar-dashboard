@@ -1,62 +1,87 @@
-'use client';
-
 import React from 'react';
-import { AvatarRender } from '../../types';
+import { RenderState, type AvatarRender } from '@prisma/client';
+import { formatStamp } from '../../lib/conversationQuery';
 
 interface RenderQueueProps {
   renders: AvatarRender[];
-  creditNote: string;
 }
 
-export const RenderQueue: React.FC<RenderQueueProps> = ({
-  renders,
-  creditNote,
-}) => {
-  const getBadgeStyle = (state: AvatarRender['state']) => {
-    switch (state) {
-      case 'done':
-        return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300';
-      case 'rendering':
-        return 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300 animate-pulse';
-      case 'queued':
-        return 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400';
-      case 'failed':
-      default:
-        return 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300';
-    }
-  };
+const GRID = 'grid grid-cols-[1fr_120px_84px_92px] gap-2';
 
+function badgeStyle(state: RenderState): string {
+  switch (state) {
+    case RenderState.DONE:
+      return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300';
+    case RenderState.RENDERING:
+      return 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300 animate-pulse';
+    case RenderState.QUEUED:
+      return 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400';
+    default:
+      return 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300';
+  }
+}
+
+function duration(seconds: number | null): string {
+  if (seconds === null) return '—';
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${String(secs).padStart(2, '0')}`;
+}
+
+export const RenderQueue: React.FC<RenderQueueProps> = ({ renders }) => {
   return (
     <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden shadow-sm">
       <div className="px-4 py-3 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-baseline bg-zinc-50/50 dark:bg-zinc-800/30">
         <div className="text-sm font-semibold text-zinc-900 dark:text-white">
           Render queue
         </div>
-        <div className="font-mono text-xs text-zinc-400">{creditNote}</div>
+        <div className="font-mono text-xs text-zinc-400">
+          {renders.length} {renders.length === 1 ? 'request' : 'requests'}
+        </div>
+      </div>
+
+      <div
+        className={`${GRID} px-4 py-2.5 bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-zinc-800 font-mono text-[10px] font-bold tracking-wider uppercase text-zinc-400`}
+      >
+        <div>script</div>
+        <div>voice</div>
+        <div>length</div>
+        <div>state</div>
       </div>
 
       <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
-        {renders.map((item, idx) => (
+        {renders.map((item) => (
           <div
-            key={idx}
-            className="grid grid-cols-[1fr_96px_84px_92px] gap-2 px-4 py-3 items-center text-xs hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors"
+            key={item.id}
+            className={`${GRID} px-4 py-3 items-center text-xs hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors`}
           >
-            <div className="truncate font-medium text-zinc-900 dark:text-zinc-100 pr-2">
-              {item.script}
+            <div className="min-w-0 pr-2">
+              <div className="truncate font-medium text-zinc-900 dark:text-zinc-100">
+                {item.script}
+              </div>
+              <div className="font-mono text-[10.5px] text-zinc-400">
+                {formatStamp(item.createdAt)}
+              </div>
             </div>
-            <div className="text-zinc-500">{item.voice}</div>
-            <div className="font-mono text-zinc-400">{item.length}</div>
+            <div className="text-zinc-500 truncate">{item.voice}</div>
+            <div className="font-mono text-zinc-400">{duration(item.durationSec)}</div>
             <div>
               <span
-                className={`text-[10.5px] font-bold px-2 py-0.5 rounded-full inline-block text-center capitalize w-full ${getBadgeStyle(
+                className={`text-[10.5px] font-bold px-2 py-0.5 rounded-full inline-block text-center capitalize w-full ${badgeStyle(
                   item.state
                 )}`}
               >
-                {item.state}
+                {item.state.toLowerCase()}
               </span>
             </div>
           </div>
         ))}
+
+        {renders.length === 0 && (
+          <div className="p-8 text-center text-xs text-zinc-400">
+            No renders requested yet.
+          </div>
+        )}
       </div>
     </div>
   );
