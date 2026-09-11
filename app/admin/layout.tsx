@@ -1,6 +1,4 @@
 import React from "react";
-import { Sidebar } from "@/components/layout/Sidebar";
-import { TAB_DEFINITIONS } from "@/data/mockData";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -14,10 +12,5 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <div className="flex min-h-screen bg-[oklch(0.985_0.003_90)] dark:bg-black text-zinc-900 dark:text-zinc-100 transition-colors">
-      <Sidebar tabs={TAB_DEFINITIONS} />
-      <main className="flex-1 min-w-0 flex flex-col">{children}</main>
-    </div>
-  );
+  return <>{children}</>;
 }
