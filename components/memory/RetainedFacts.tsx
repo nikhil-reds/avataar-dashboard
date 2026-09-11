@@ -1,11 +1,10 @@
-'use client';
-
 import React from 'react';
-import { RetainedFact } from '../../types';
 import { Sparkles } from 'lucide-react';
+import type { ConversationDetail } from '../../lib/conversations';
+import { formatStamp } from '../../lib/conversationQuery';
 
 interface RetainedFactsProps {
-  facts: RetainedFact[];
+  facts: ConversationDetail['facts'];
 }
 
 export const RetainedFacts: React.FC<RetainedFactsProps> = ({ facts }) => {
@@ -17,25 +16,27 @@ export const RetainedFacts: React.FC<RetainedFactsProps> = ({ facts }) => {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5">
-        {facts.map((item, idx) => (
+        {facts.map((fact) => (
           <div
-            key={idx}
+            key={fact.id}
             className="border border-zinc-200/80 dark:border-zinc-800 rounded-lg p-3 flex flex-col gap-1 bg-zinc-50/50 dark:bg-zinc-800/30"
           >
             <div className="font-mono text-[9.5px] uppercase tracking-wider text-zinc-400 font-semibold">
-              {item.k}
+              {fact.key}
             </div>
             <div className="text-xs font-semibold text-zinc-900 dark:text-white">
-              {item.v}
+              {fact.value}
             </div>
             <div className="text-[11px] text-zinc-400 mt-0.5">
-              expires {item.exp}
+              {fact.expiresAt ? `expires ${formatStamp(fact.expiresAt)}` : 'no expiry set'}
             </div>
           </div>
         ))}
+
         {facts.length === 0 && (
           <div className="col-span-full text-xs text-zinc-400 p-2">
-            No active facts retained for this session.
+            No facts retained for this session. Fact extraction is not wired up yet, so
+            this stays empty until something writes to it.
           </div>
         )}
       </div>
