@@ -1,21 +1,30 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { NavTab } from '../../types';
 import { Clock, Sparkles } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 
 interface HeaderProps {
   activeTabDef: NavTab;
-  /** Omitted on routes whose CTA has no action yet. */
+  /** Click handler for the CTA. Client pages only — a server page passes `ctaHref`. */
   onPrimaryClick?: () => void;
+  /** Navigation target for the CTA, for pages rendered on the server. */
+  ctaHref?: string;
 }
+
+const CTA_CLASS =
+  'flex items-center gap-2 text-[13px] font-semibold text-white bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] transition-all px-4 py-2 rounded-lg shadow-sm cursor-pointer';
 
 export const Header: React.FC<HeaderProps> = ({
   activeTabDef,
   onPrimaryClick,
+  ctaHref,
 }) => {
-  const [timeStr, setTimeStr] = useState('11 Sep · 14:08 IST');
+  // Empty until mounted: rendering a fixed placeholder time would show a stale clock
+  // for a frame, and would not match the server output.
+  const [timeStr, setTimeStr] = useState('');
 
   useEffect(() => {
     const updateTime = () => {
@@ -50,20 +59,26 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       <div className="flex items-center gap-3">
-        <div className="font-mono text-[11px] text-zinc-600 dark:text-zinc-300 px-3 py-2 border border-zinc-200 dark:border-zinc-700 rounded-lg bg-zinc-50 dark:bg-zinc-800 flex items-center gap-2">
-          <Clock className="w-3.5 h-3.5 text-zinc-400" />
-          <span>{timeStr}</span>
-        </div>
+        {timeStr && (
+          <div className="font-mono text-[11px] text-zinc-600 dark:text-zinc-300 px-3 py-2 border border-zinc-200 dark:border-zinc-700 rounded-lg bg-zinc-50 dark:bg-zinc-800 flex items-center gap-2">
+            <Clock className="w-3.5 h-3.5 text-zinc-400" />
+            <span>{timeStr}</span>
+          </div>
+        )}
 
         <ThemeToggle />
 
-        <button
-          onClick={onPrimaryClick}
-          className="flex items-center gap-2 text-[13px] font-semibold text-white bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] transition-all px-4 py-2 rounded-lg shadow-sm cursor-pointer"
-        >
-          <Sparkles className="w-4 h-4" />
-          <span>{activeTabDef.cta}</span>
-        </button>
+        {ctaHref ? (
+          <Link href={ctaHref} className={CTA_CLASS}>
+            <Sparkles className="w-4 h-4" />
+            <span>{activeTabDef.cta}</span>
+          </Link>
+        ) : onPrimaryClick ? (
+          <button onClick={onPrimaryClick} className={CTA_CLASS}>
+            <Sparkles className="w-4 h-4" />
+            <span>{activeTabDef.cta}</span>
+          </button>
+        ) : null}
       </div>
     </header>
   );
