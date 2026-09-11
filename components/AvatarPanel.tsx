@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { fetchSessionToken, stopSessionOnServer } from '@/lib/liveavatar';
+import { useConversationRecorder } from '@/lib/useConversationRecorder';
 import type { LiveAvatarSession } from '@heygen/liveavatar-web-sdk';
 
 export interface AvatarPanelProps {
@@ -25,6 +26,8 @@ export default function AvatarPanel({
   const [isLoading, setIsLoading]   = useState(false);
   const [error, setError]           = useState<string | null>(null);
   const [audioLocked, setAudioLocked] = useState(false);
+
+  const recorder = useConversationRecorder();
 
   const sessionRef      = useRef<LiveAvatarSession | null>(null);
   const sessionTokenRef = useRef<string | null>(null);
@@ -93,15 +96,28 @@ export default function AvatarPanel({
       session.on(AgentEventsEnum.AVATAR_SPEAK_STARTED, () => setIsSpeaking(true));
       session.on(AgentEventsEnum.AVATAR_SPEAK_ENDED,   () => setIsSpeaking(false));
 
-      session.on(AgentEventsEnum.USER_TRANSCRIPTION,   (e) => onUserTranscription?.(e.text));
-      session.on(AgentEventsEnum.AVATAR_TRANSCRIPTION, (e) => onAvatarTranscription?.(e.text));
+      // Only the finalized transcription events are persisted. The *_CHUNK variants are
+      // streaming partials and would write a row per fragment.
+      session.on(AgentEventsEnum.USER_TRANSCRIPTION, (e) => {
+        recorder.recordShopper(e.event_id, e.text);
+        onUserTranscription?.(e.text);
+      });
+      session.on(AgentEventsEnum.AVATAR_TRANSCRIPTION, (e) => {
+        recorder.recordAvatar(e.event_id, e.text);
+        onAvatarTranscription?.(e.text);
+      });
 
       session.on(AgentEventsEnum.SESSION_STOPPED, () => {
         setIsSpeaking(false);
         setAudioLocked(false);
+        void recorder.end();
       });
 
       await session.start();
+
+      // Begins buffering immediately, so the avatar's opening line is captured while the
+      // session record is still being created.
+      void recorder.start(session.sessionId);
       await session.voiceChat.start().catch((e) => console.error('[LiveAvatar] voiceChat.start() failed:', e));
 
       onSessionReady?.((text: string) => session.message(text));
@@ -114,10 +130,11 @@ export default function AvatarPanel({
       setIsLoading(false);
       startingRef.current = false;
     }
-  }, [onStart, onUserTranscription, onAvatarTranscription, onSessionReady]);
+  }, [onStart, onUserTranscription, onAvatarTranscription, onSessionReady, recorder]);
 
   const handleEnd = useCallback(async () => {
     if (keepAliveRef.current) clearInterval(keepAliveRef.current);
+    await recorder.end();
     try { await sessionRef.current?.stop(); } catch {}
     if (sessionTokenRef.current) stopSessionOnServer(sessionTokenRef.current);
     sessionRef.current = null;
@@ -125,7 +142,7 @@ export default function AvatarPanel({
     setIsSpeaking(false);
     setAudioLocked(false);
     onEnd();
-  }, [onEnd]);
+  }, [onEnd, recorder]);
 
   return (
     <section className="relative flex flex-col items-center justify-center w-full h-full overflow-hidden bg-bg-primary p-6 transition-all duration-700">
