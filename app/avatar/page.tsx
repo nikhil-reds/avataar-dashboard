@@ -1,68 +1,36 @@
-'use client';
-
-import { useState } from 'react';
 import { Header } from '../../components/layout/Header';
 import { AvatarPreview } from '../../components/avatar/AvatarPreview';
-import { ScriptComposer } from '../../components/avatar/ScriptComposer';
+import { RenderComposer } from '../../components/avatar/RenderComposer';
 import { RenderQueue } from '../../components/avatar/RenderQueue';
-import { TAB_BY_ID, INITIAL_RENDERS } from '../../data/mockData';
-import { AvatarRender } from '../../types';
+import { TAB_BY_ID } from '../../data/navigation';
+import { prisma } from '../../lib/db';
+
+export const dynamic = 'force-dynamic';
 
 const VOICES = ['Hindi–English (Meera)', 'English IN (Meera)', 'Tamil (Anitha)'];
 
-export default function AvatarStudioPage() {
-  const [script, setScript] = useState<string>(
-    'Namaste! Let me show you three necklaces that match your budget.'
-  );
-  const [voice, setVoice] = useState<string>(VOICES[0]);
-  const [rendering, setRendering] = useState<boolean>(false);
-  const [renderDone, setRenderDone] = useState<boolean>(false);
-  const [renders, setRenders] = useState<AvatarRender[]>(INITIAL_RENDERS);
-
-  const handleTriggerRender = () => {
-    if (rendering) return;
-    setRendering(true);
-    setRenderDone(false);
-    setTimeout(() => {
-      setRendering(false);
-      setRenderDone(true);
-      const newRender: AvatarRender = {
-        script,
-        voice: voice.split(' ')[0],
-        length: '0:18',
-        state: 'done',
-      };
-      setRenders((prev) => [newRender, ...prev]);
-    }, 1800);
-  };
+export default async function AvatarStudioPage() {
+  const renders = await prisma.avatarRender.findMany({
+    orderBy: { createdAt: 'desc' },
+    take: 40,
+  });
 
   return (
     <>
-      <Header
-        activeTabDef={TAB_BY_ID.avatar}
-        onPrimaryClick={handleTriggerRender}
-      />
+      <Header activeTabDef={TAB_BY_ID.avatar} />
 
       <div className="p-8 pb-16 flex flex-col gap-6 max-w-7xl">
+        <div className="rounded-xl border border-amber-200 dark:border-amber-900/60 bg-amber-50 dark:bg-amber-950/30 px-4 py-3 text-xs text-amber-800 dark:text-amber-200">
+          No render worker is configured. Queued requests are stored and listed below,
+          but nothing processes them into video yet.
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6 items-start">
-          <AvatarPreview voiceLabel={voice} />
+          <AvatarPreview voiceLabel={VOICES[0]} />
 
           <div className="flex flex-col gap-6">
-            <ScriptComposer
-              script={script}
-              onChangeScript={(s) => {
-                setScript(s);
-                setRenderDone(false);
-              }}
-              voice={voice}
-              onSelectVoice={setVoice}
-              voices={VOICES}
-              rendering={rendering}
-              renderDone={renderDone}
-              onRender={handleTriggerRender}
-            />
-
-            <RenderQueue renders={renders} creditNote="913 / 1000 min left" />
+            <RenderComposer voices={VOICES} />
+            <RenderQueue renders={renders} />
           </div>
         </div>
       </div>
