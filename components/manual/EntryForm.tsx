@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { ManualFormState } from '../../types';
-import { Save, RotateCcw, CheckCircle } from 'lucide-react';
+import { Save, RotateCcw, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
 
 interface EntryFormProps {
   form: ManualFormState;
@@ -10,6 +10,8 @@ interface EntryFormProps {
   talkingPoints: string;
   onChangeTalkingPoints: (value: string) => void;
   saveNotice: string;
+  error?: string;
+  saving?: boolean;
   onSave: () => void;
   onReset: () => void;
 }
@@ -20,6 +22,8 @@ export const EntryForm: React.FC<EntryFormProps> = ({
   talkingPoints,
   onChangeTalkingPoints,
   saveNotice,
+  error = '',
+  saving = false,
   onSave,
   onReset,
 }) => {
@@ -71,10 +75,15 @@ export const EntryForm: React.FC<EntryFormProps> = ({
       <div className="flex items-center gap-3 border-t border-zinc-100 dark:border-zinc-800 pt-4">
         <button
           onClick={onSave}
-          className="flex items-center gap-1.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] transition-all px-4 py-2 rounded-lg cursor-pointer shadow-xs"
+          disabled={saving}
+          className="flex items-center gap-1.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed transition-all px-4 py-2 rounded-lg cursor-pointer shadow-xs"
         >
-          <Save className="w-3.5 h-3.5" />
-          <span>Save &amp; index</span>
+          {saving ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          ) : (
+            <Save className="w-3.5 h-3.5" />
+          )}
+          <span>{saving ? 'Saving…' : 'Save to catalogue'}</span>
         </button>
 
         <button
@@ -85,12 +94,17 @@ export const EntryForm: React.FC<EntryFormProps> = ({
           <span>Clear</span>
         </button>
 
-        {saveNotice && (
+        {error ? (
+          <div className="ml-auto text-xs font-semibold text-rose-600 dark:text-rose-400 flex items-center gap-1.5">
+            <AlertCircle className="w-4 h-4" />
+            <span>{error}</span>
+          </div>
+        ) : saveNotice ? (
           <div className="ml-auto text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
             <CheckCircle className="w-4 h-4" />
             <span>{saveNotice}</span>
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );
