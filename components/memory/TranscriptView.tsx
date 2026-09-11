@@ -1,70 +1,40 @@
-'use client';
-
 import React from 'react';
-import { SessionItem } from '../../types';
-import { Trash2, Check } from 'lucide-react';
+import { SpeakerRole } from '@prisma/client';
+import { formatStamp } from '../../lib/conversationQuery';
+import type { ConversationDetail } from '../../lib/conversations';
+import { ForgetSessionButton } from './ForgetSessionButton';
 
 interface TranscriptViewProps {
-  session: SessionItem;
-  forgotten: boolean;
-  onForget: () => void;
+  session: ConversationDetail | null;
 }
 
-export const TranscriptView: React.FC<TranscriptViewProps> = ({
-  session,
-  forgotten,
-  onForget,
-}) => {
-  const turns = forgotten
-    ? [
-        {
-          who: 'system' as const,
-          text: 'Memory for this session was cleared manually. The avatar will start fresh on the next turn.',
-          time: 'now',
-        },
-      ]
-    : session.turns;
+export const TranscriptView: React.FC<TranscriptViewProps> = ({ session }) => {
+  if (!session) {
+    return (
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-8 shadow-sm text-center text-xs text-zinc-400">
+        Select a session to read its transcript.
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5 flex flex-col gap-4 shadow-sm">
       <div className="flex justify-between items-baseline gap-2 pb-2 border-b border-zinc-100 dark:border-zinc-800">
-        <div className="text-sm font-semibold text-zinc-900 dark:text-white">
-          {session.name} · transcript
+        <div className="text-sm font-semibold text-zinc-900 dark:text-white truncate">
+          {session.title ?? 'Untitled conversation'} · transcript
         </div>
-        <button
-          onClick={onForget}
-          disabled={forgotten}
-          className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-            forgotten
-              ? 'bg-zinc-100 text-zinc-400 dark:bg-zinc-800 cursor-not-allowed'
-              : 'bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 hover:bg-rose-600 hover:text-white'
-          }`}
-        >
-          {forgotten ? (
-            <>
-              <Check className="w-3.5 h-3.5" />
-              <span>Cleared</span>
-            </>
-          ) : (
-            <>
-              <Trash2 className="w-3.5 h-3.5" />
-              <span>Forget this session</span>
-            </>
-          )}
-        </button>
+        <ForgetSessionButton sessionId={session.id} />
       </div>
 
       <div className="flex flex-col gap-3">
-        {turns.map((tn, idx) => {
-          const isShopper = tn.who === 'shopper';
-          const isSystem = tn.who === 'system';
+        {session.turns.map((turn) => {
+          const isShopper = turn.who === SpeakerRole.SHOPPER;
+          const isSystem = turn.who === SpeakerRole.SYSTEM;
 
           return (
             <div
-              key={idx}
-              className={`flex gap-2 ${
-                isShopper ? 'justify-end' : 'justify-start'
-              }`}
+              key={turn.id}
+              className={`flex gap-2 ${isShopper ? 'justify-end' : 'justify-start'}`}
             >
               <div
                 className={`max-w-[75%] rounded-xl px-3.5 py-2.5 text-xs leading-relaxed ${
@@ -76,13 +46,19 @@ export const TranscriptView: React.FC<TranscriptViewProps> = ({
                 }`}
               >
                 <div className="font-mono text-[9.5px] tracking-wider uppercase opacity-60 mb-1">
-                  {tn.who} · {tn.time}
+                  {turn.who.toLowerCase()} · {formatStamp(turn.spokenAt)}
                 </div>
-                <div>{tn.text}</div>
+                <div>{turn.text}</div>
               </div>
             </div>
           );
         })}
+
+        {session.turns.length === 0 && (
+          <div className="py-6 text-center text-xs text-zinc-400">
+            No turns were recorded for this session.
+          </div>
+        )}
       </div>
     </div>
   );
