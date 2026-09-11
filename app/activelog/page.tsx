@@ -1,27 +1,30 @@
-'use client';
-
-import { useState } from 'react';
 import { Header } from '../../components/layout/Header';
 import { LogFilters } from '../../components/logs/LogFilters';
 import { LogTable } from '../../components/logs/LogTable';
 import { TraceDetail } from '../../components/logs/TraceDetail';
-import { TAB_BY_ID, INITIAL_LOG_ROWS } from '../../data/mockData';
+import { TAB_BY_ID } from '../../data/navigation';
+import { listActivity, LOG_KIND_FILTERS, type LogKindFilter } from '../../lib/activity';
 
-export default function ActiveLogPage() {
-  const [logFilter, setLogFilter] = useState<string>('all');
-  const [logQuery, setLogQuery] = useState<string>('');
-  const [selectedLogIdx, setSelectedLogIdx] = useState<number>(0);
+export const dynamic = 'force-dynamic';
 
-  const filteredLogs = INITIAL_LOG_ROWS.filter((r) => {
-    const matchesFilter = logFilter === 'all' || r.kind === logFilter;
-    const q = logQuery.trim().toLowerCase();
-    const matchesQuery =
-      !q || (r.event + r.session + r.model).toLowerCase().includes(q);
-    return matchesFilter && matchesQuery;
-  });
+function single(value: string | string[] | undefined): string {
+  return (Array.isArray(value) ? value[0] : value)?.trim() ?? '';
+}
 
-  const selectedLog =
-    filteredLogs[selectedLogIdx] || filteredLogs[0] || INITIAL_LOG_ROWS[0];
+export default async function ActiveLogPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const raw = await searchParams;
+
+  const kindRaw = single(raw.kind) as LogKindFilter;
+  const kind = LOG_KIND_FILTERS.includes(kindRaw) ? kindRaw : 'all';
+  const q = single(raw.q).slice(0, 200);
+  const selectedId = single(raw.selected) || null;
+
+  const records = await listActivity({ kind, q, limit: 200 });
+  const selected = records.find((record) => record.id === selectedId) ?? records[0] ?? null;
 
   return (
     <>
@@ -29,26 +32,16 @@ export default function ActiveLogPage() {
 
       <div className="p-8 pb-16 flex flex-col gap-6 max-w-7xl">
         <div className="flex flex-col gap-4">
-          <LogFilters
-            filter={logFilter}
-            onSelectFilter={(kind) => {
-              setLogFilter(kind);
-              setSelectedLogIdx(0);
-            }}
-            searchQuery={logQuery}
-            onSearchChange={(q) => {
-              setLogQuery(q);
-              setSelectedLogIdx(0);
-            }}
-          />
+          <LogFilters kind={kind} searchQuery={q} />
 
           <div className="grid grid-cols-1 lg:grid-cols-[1.55fr_1fr] gap-6 items-start">
             <LogTable
-              logs={filteredLogs}
-              selectedIndex={selectedLogIdx}
-              onSelectRow={(idx) => setSelectedLogIdx(idx)}
+              records={records}
+              selectedId={selected?.id ?? null}
+              kind={kind}
+              searchQuery={q}
             />
-            <TraceDetail log={selectedLog} />
+            <TraceDetail record={selected} />
           </div>
         </div>
       </div>
