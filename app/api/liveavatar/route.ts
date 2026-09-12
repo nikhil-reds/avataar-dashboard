@@ -14,7 +14,17 @@ export async function POST() {
 
   const avatarId = process.env.LIVEAVATAR_AVATAR_ID;
   const contextId = process.env.LIVEAVATAR_CONTEXT_ID;
-  const isSandbox = !contextId;
+
+  // Who answers the shopper. Defaults to this app, whose answers are grounded in the
+  // knowledge base in Postgres. Set AVATAR_BRAIN=heygen to hand answering back to
+  // HeyGen's own agent — the behaviour before the knowledge base existed.
+  const brain = process.env.AVATAR_BRAIN === 'heygen' ? 'heygen' : 'local';
+
+  // A context is what gives HeyGen's agent its own opinions. Attaching one while this app
+  // is also answering would have both of them reply to every question, so it is attached
+  // only when HeyGen is the brain.
+  const useHeyGenBrain = brain === 'heygen' && Boolean(contextId);
+  const isSandbox = !avatarId;
 
   const body: Record<string, unknown> = {
     mode: 'FULL',
@@ -25,7 +35,9 @@ export async function POST() {
   if (isSandbox) {
     body.is_sandbox = true;
     body.avatar_id = SANDBOX_AVATAR_ID;
-  } else {
+  }
+
+  if (useHeyGenBrain) {
     (body.avatar_persona as Record<string, unknown>).context_id = contextId;
   }
 
@@ -59,10 +71,12 @@ export async function POST() {
     kind: LogKind.SESSION,
     model: 'liveavatar',
     latencyMs: Date.now() - startedAt,
-    detail: isSandbox ? 'sandbox avatar' : 'context ' + contextId,
+    detail: `${brain} brain · ${isSandbox ? 'sandbox avatar' : 'avatar ' + avatarId}`,
   });
 
-  return NextResponse.json({ session_token: data.session_token });
+  // `brain` is additive — the client reads it to decide whether to answer questions
+  // itself, so the mode is decided in one place rather than configured twice.
+  return NextResponse.json({ session_token: data.session_token, brain });
 }
 
 export async function DELETE(request: Request) {
