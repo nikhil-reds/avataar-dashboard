@@ -173,10 +173,17 @@ export function useConversationRecorder() {
     [enqueue]
   );
 
+  /**
+   * The stored conversation's id, or null before it has been created. Read as a function
+   * rather than exposed as state so that consumers see the current value without the
+   * recorder re-rendering them mid-conversation.
+   */
+  const currentSessionId = useCallback(() => sessionIdRef.current, []);
+
   // Memoised: consumers put this object in useCallback dependency arrays, and a fresh
   // object each render would rebuild their handlers on every state change.
   return useMemo(
-    () => ({ start, end, recordShopper, recordAvatar }),
-    [start, end, recordShopper, recordAvatar]
+    () => ({ start, end, recordShopper, recordAvatar, currentSessionId }),
+    [start, end, recordShopper, recordAvatar, currentSessionId]
   );
 }
