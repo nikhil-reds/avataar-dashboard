@@ -13,6 +13,7 @@ import {
   Video,
   Brain,
   MessagesSquare,
+  BookOpen,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -29,6 +30,7 @@ const TAB_ICONS: Record<TabId, React.ReactNode> = {
   catalogue: <Database className="w-4 h-4" />,
   ingest: <FileUp className="w-4 h-4" />,
   manual: <FileEdit className="w-4 h-4" />,
+  knowledge: <BookOpen className="w-4 h-4" />,
   avatar: <Video className="w-4 h-4" />,
   memory: <Brain className="w-4 h-4" />,
 };
