@@ -5,6 +5,7 @@ export type TabId =
   | 'catalogue'
   | 'ingest'
   | 'manual'
+  | 'knowledge'
   | 'avatar'
   | 'memory';
 
@@ -52,4 +53,14 @@ export interface ManualFormState {
   price: string;
   stock: string;
   supplier: string;
+}
+
+/** Local form state for the avatar knowledge admin. Keywords are edited as free text. */
+export interface KnowledgeFormState {
+  title: string;
+  content: string;
+  category: string;
+  keywords: string;
+  source: string;
+  isActive: boolean;
 }
