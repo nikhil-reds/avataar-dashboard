@@ -1,9 +1,21 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { fetchSessionToken, stopSessionOnServer } from '@/lib/liveavatar';
+import { fetchSessionToken, stopSessionOnServer, type AvatarBrain } from '@/lib/liveavatar';
 import { useConversationRecorder } from '@/lib/useConversationRecorder';
 import type { LiveAvatarSession } from '@heygen/liveavatar-web-sdk';
+
+/** Conversational context sent with each question. Older turns are dropped server-side. */
+interface ChatTurn {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+const MAX_LOCAL_HISTORY = 20;
+
+/** Spoken when the knowledge pipeline cannot be reached, so the avatar is never mute. */
+const FALLBACK_REPLY =
+  'Sorry, I could not reach my knowledge base just then. Could you ask me that again?';
 
 export interface AvatarPanelProps {
   isActive: boolean;
@@ -35,6 +47,14 @@ export default function AvatarPanel({
   const keepAliveRef    = useRef<ReturnType<typeof setInterval> | null>(null);
   const startingRef     = useRef(false);
 
+  // Set from the token response. While it reads 'heygen' this component stays a pure
+  // renderer and HeyGen's agent answers, exactly as it did before the knowledge base.
+  const brainRef        = useRef<AvatarBrain>('local');
+  const historyRef      = useRef<ChatTurn[]>([]);
+  // Increments per question. An answer whose ticket is stale — the shopper spoke again
+  // while it was being generated — is discarded rather than spoken out of turn.
+  const questionSeqRef  = useRef(0);
+
   useEffect(() => {
     if (!isActive) return;
     keepAliveRef.current = setInterval(async () => {
@@ -59,6 +79,67 @@ export default function AvatarPanel({
     setAudioLocked(false);
   }, []);
 
+  /**
+   * Answers one spoken question from the knowledge base.
+   *
+   * The chat API does the retrieval and the generation; this only carries the question
+   * there and hands the answer to the avatar to speak. `message()` is the SDK's
+   * "speak this as your response" command, so the avatar's own transcription event still
+   * fires and the conversation recorder stores the turn as normal.
+   */
+  const answerQuestion = useCallback(
+    async (question: string) => {
+      const session = sessionRef.current;
+      if (!session || !question.trim()) return;
+
+      const ticket = ++questionSeqRef.current;
+
+      let reply: string;
+      try {
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: question,
+            history: historyRef.current,
+            sessionId: recorder.currentSessionId(),
+          }),
+        });
+
+        if (!res.ok) {
+          // Carry the server's explanation into the message, so the console says what is
+          // actually wrong rather than just the status code.
+          const failure = await res.json().catch(() => ({}));
+          throw new Error(
+            `chat failed (${res.status}): ${failure.error ?? 'no detail from server'}`
+          );
+        }
+        const data = await res.json();
+        reply = typeof data.response === 'string' && data.response.trim() ? data.response : FALLBACK_REPLY;
+      } catch (err) {
+        console.error('[avatar]', err);
+        reply = FALLBACK_REPLY;
+      }
+
+      // The shopper asked something else while this was in flight, or ended the session.
+      if (ticket !== questionSeqRef.current || sessionRef.current !== session) return;
+
+      const nextHistory: ChatTurn[] = [
+        ...historyRef.current,
+        { role: 'user', content: question },
+        { role: 'assistant', content: reply },
+      ];
+      historyRef.current = nextHistory.slice(-MAX_LOCAL_HISTORY);
+
+      try {
+        session.message(reply);
+      } catch (err) {
+        console.error('[avatar] could not speak the answer', err);
+      }
+    },
+    [recorder]
+  );
+
   const handleStart = useCallback(async () => {
     if (startingRef.current) return;
     startingRef.current = true;
@@ -71,8 +152,11 @@ export default function AvatarPanel({
         '@heygen/liveavatar-web-sdk'
       );
 
-      const token = await fetchSessionToken();
+      const { token, brain } = await fetchSessionToken();
       sessionTokenRef.current = token;
+      brainRef.current = brain;
+      historyRef.current = [];
+      questionSeqRef.current = 0;
 
       const session = new LiveAvatarSession(token);
       sessionRef.current = session;
@@ -101,6 +185,10 @@ export default function AvatarPanel({
       session.on(AgentEventsEnum.USER_TRANSCRIPTION, (e) => {
         recorder.recordShopper(e.event_id, e.text);
         onUserTranscription?.(e.text);
+
+        // This is the knowledge base entering the conversation: the finalized question
+        // goes to the chat API, which grounds the answer in Postgres.
+        if (brainRef.current === 'local') void answerQuestion(e.text);
       });
       session.on(AgentEventsEnum.AVATAR_TRANSCRIPTION, (e) => {
         recorder.recordAvatar(e.event_id, e.text);
@@ -130,15 +218,18 @@ export default function AvatarPanel({
       setIsLoading(false);
       startingRef.current = false;
     }
-  }, [onStart, onUserTranscription, onAvatarTranscription, onSessionReady, recorder]);
+  }, [onStart, onUserTranscription, onAvatarTranscription, onSessionReady, recorder, answerQuestion]);
 
   const handleEnd = useCallback(async () => {
     if (keepAliveRef.current) clearInterval(keepAliveRef.current);
+    // Invalidates any answer still in flight, so it cannot be spoken into a dead session.
+    questionSeqRef.current++;
     await recorder.end();
     try { await sessionRef.current?.stop(); } catch {}
     if (sessionTokenRef.current) stopSessionOnServer(sessionTokenRef.current);
     sessionRef.current = null;
     sessionTokenRef.current = null;
+    historyRef.current = [];
     setIsSpeaking(false);
     setAudioLocked(false);
     onEnd();
