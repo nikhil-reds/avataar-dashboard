@@ -182,3 +182,138 @@ export function parseSkuInput(body: unknown): Parsed<SkuInput> {
     },
   };
 }
+
+export const MAX_KNOWLEDGE_CONTENT = 20_000;
+export const MAX_KNOWLEDGE_KEYWORDS = 30;
+
+export interface KnowledgeInput {
+  title: string | null;
+  content: string;
+  category: string | null;
+  keywords: string[];
+  source: string | null;
+  isActive: boolean;
+}
+
+/** Fields actually present in a PATCH body. Absent keys are left untouched. */
+export type KnowledgePatch = Partial<KnowledgeInput>;
+
+/**
+ * Keywords are stored as an array but the admin form and most callers send one comma or
+ * newline separated string, so both shapes are accepted and normalised to an array.
+ */
+function parseKeywords(value: unknown, field: string): Parsed<string[]> {
+  if (value === undefined || value === null || value === '') return { ok: true, value: [] };
+
+  const raw = typeof value === 'string' ? value.split(/[,\n]/) : value;
+  if (!Array.isArray(raw)) {
+    return { ok: false, error: `${field} must be a string or an array of strings` };
+  }
+
+  const seen = new Set<string>();
+  for (const entry of raw) {
+    if (typeof entry !== 'string') continue;
+    const keyword = entry.trim().toLowerCase().slice(0, 80);
+    // Matching is case-insensitive, so storing two casings of one word buys nothing.
+    if (keyword) seen.add(keyword);
+  }
+
+  return { ok: true, value: [...seen].slice(0, MAX_KNOWLEDGE_KEYWORDS) };
+}
+
+function parseContent(value: unknown): Parsed<string> {
+  if (typeof value !== 'string' || !value.trim()) {
+    return { ok: false, error: 'content is required' };
+  }
+  const trimmed = value.trim();
+  if (trimmed.length > MAX_KNOWLEDGE_CONTENT) {
+    return { ok: false, error: `content exceeds ${MAX_KNOWLEDGE_CONTENT} characters` };
+  }
+  return { ok: true, value: trimmed };
+}
+
+/** Full record, for POST. `content` is the only required field. */
+export function parseKnowledgeInput(body: unknown): Parsed<KnowledgeInput> {
+  if (!isRecord(body)) return { ok: false, error: 'Body must be a JSON object' };
+
+  const content = parseContent(body.content);
+  if (!content.ok) return content;
+
+  const title = optionalString(body.title, 'title', 200);
+  if (!title.ok) return title;
+
+  const category = optionalString(body.category, 'category', 80);
+  if (!category.ok) return category;
+
+  const source = optionalString(body.source, 'source', 300);
+  if (!source.ok) return source;
+
+  const keywords = parseKeywords(body.keywords, 'keywords');
+  if (!keywords.ok) return keywords;
+
+  if (body.isActive !== undefined && typeof body.isActive !== 'boolean') {
+    return { ok: false, error: 'isActive must be a boolean' };
+  }
+
+  return {
+    ok: true,
+    value: {
+      title: title.value,
+      content: content.value,
+      category: category.value?.toLowerCase() ?? null,
+      keywords: keywords.value,
+      source: source.value,
+      isActive: body.isActive ?? true,
+    },
+  };
+}
+
+/** Partial update, for PATCH. Only the keys present in the body are returned. */
+export function parseKnowledgePatch(body: unknown): Parsed<KnowledgePatch> {
+  if (!isRecord(body)) return { ok: false, error: 'Body must be a JSON object' };
+
+  const patch: KnowledgePatch = {};
+
+  if (body.content !== undefined) {
+    const content = parseContent(body.content);
+    if (!content.ok) return content;
+    patch.content = content.value;
+  }
+
+  if (body.title !== undefined) {
+    const title = optionalString(body.title, 'title', 200);
+    if (!title.ok) return title;
+    patch.title = title.value;
+  }
+
+  if (body.category !== undefined) {
+    const category = optionalString(body.category, 'category', 80);
+    if (!category.ok) return category;
+    patch.category = category.value?.toLowerCase() ?? null;
+  }
+
+  if (body.source !== undefined) {
+    const source = optionalString(body.source, 'source', 300);
+    if (!source.ok) return source;
+    patch.source = source.value;
+  }
+
+  if (body.keywords !== undefined) {
+    const keywords = parseKeywords(body.keywords, 'keywords');
+    if (!keywords.ok) return keywords;
+    patch.keywords = keywords.value;
+  }
+
+  if (body.isActive !== undefined) {
+    if (typeof body.isActive !== 'boolean') {
+      return { ok: false, error: 'isActive must be a boolean' };
+    }
+    patch.isActive = body.isActive;
+  }
+
+  if (Object.keys(patch).length === 0) {
+    return { ok: false, error: 'Nothing to update' };
+  }
+
+  return { ok: true, value: patch };
+}
