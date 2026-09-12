@@ -1,6 +1,7 @@
 import { LogKind, LogStatus, SkuState, SpeakerRole } from '@prisma/client';
 import { prisma } from './db';
 import { latencyByKind } from './activity';
+import { llmBaseUrl, llmModel } from './llm';
 import type { LatencyItem, ServiceHealthItem, StatItem } from '../types';
 
 const GREEN = '#10b981';
@@ -115,7 +116,7 @@ export async function getServiceHealth(): Promise<ServiceHealthItem[]> {
   }
   const dbMs = Date.now() - dbStart;
 
-  const [geminiCalls, geminiErrors, avatarSessions, avatarErrors, storedTurns] = await Promise.all([
+  const [answerCalls, answerErrors, avatarSessions, avatarErrors, storedTurns] = await Promise.all([
     prisma.activityLog.count({ where: { kind: LogKind.CHAT, createdAt: { gte: since } } }),
     prisma.activityLog.count({
       where: { kind: LogKind.CHAT, status: LogStatus.ERROR, createdAt: { gte: since } },
@@ -127,8 +128,19 @@ export async function getServiceHealth(): Promise<ServiceHealthItem[]> {
     prisma.sessionTurn.count(),
   ]);
 
-  const geminiConfigured = Boolean(process.env.GEMINI_API_KEY);
   const avatarConfigured = Boolean(process.env.LIVEAVATAR_API_KEY);
+
+  // The model runs locally, so "configured" is not a key check but a reachability check:
+  // the container is either answering or it is not.
+  let llmOk = false;
+  const llmStart = Date.now();
+  try {
+    const res = await fetch(`${llmBaseUrl()}/api/tags`, { signal: AbortSignal.timeout(2_000) });
+    llmOk = res.ok;
+  } catch {
+    llmOk = false;
+  }
+  const llmMs = Date.now() - llmStart;
 
   return [
     {
@@ -146,10 +158,12 @@ export async function getServiceHealth(): Promise<ServiceHealthItem[]> {
       color: !avatarConfigured ? GREY : avatarErrors > 0 ? RED : GREEN,
     },
     {
-      name: 'Gemini',
-      note: geminiConfigured ? `${geminiCalls} calls in 24h` : 'GEMINI_API_KEY not configured',
-      metric: geminiErrors > 0 ? `${geminiErrors} errors` : geminiConfigured ? 'ready' : 'no key',
-      color: !geminiConfigured ? GREY : geminiErrors > 0 ? RED : GREEN,
+      name: `Local LLM (${llmModel()})`,
+      note: llmOk
+        ? `${answerCalls} answers in 24h · ${llmMs}ms to respond`
+        : `ollama unreachable at ${llmBaseUrl()} — run: docker compose up -d ollama`,
+      metric: answerErrors > 0 ? `${answerErrors} errors` : llmOk ? 'ready' : 'down',
+      color: !llmOk ? RED : answerErrors > 0 ? AMBER : GREEN,
     },
     {
       name: 'Transcript store',
