@@ -36,5 +36,31 @@ services:
     ports:
       - 8080:8080
 
+  # Local LLM serving Qwen3. The avatar's answers are generated here, so no external API
+  # and no API key is involved in a conversation.
+  ollama:
+    image: ollama/ollama:latest
+    restart: always
+    ports:
+      - "11434:11434"
+    volumes:
+      # Named volume so the pulled model survives `docker compose down` — re-pulling
+      # Qwen3 is a multi-gigabyte download.
+      - ollama_models:/root/.ollama
+    environment:
+      # Hold the model in memory between turns. Without this it unloads after 5 minutes
+      # and the next question pays the whole load cost again mid-conversation.
+      OLLAMA_KEEP_ALIVE: 30m
+    # GPU passthrough. Requires WSL2 with the NVIDIA Container Toolkit; if the container
+    # fails to start, delete this `deploy` block and Ollama will run on CPU instead.
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
 volumes:
   avataar_db_data:
+  ollama_models:
