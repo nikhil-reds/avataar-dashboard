@@ -1,3 +1,5 @@
+// UNUSED DUPLICATE — do not import. The live copy is `lib/liveavatar.ts`, which also
+// carries the avatar brain mode; this stale copy does not.
 // Client-side only — only import from 'use client' components
 
 export async function fetchSessionToken(): Promise<string> {
