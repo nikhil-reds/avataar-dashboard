@@ -58,18 +58,18 @@ enum SkuState {
 // Written by lib/activity.ts from the real request paths. Every field is a measurement,
 // not a label: latency is milliseconds actually elapsed, tokens come from the provider.
 model ActivityLog {
-  id         String     @id @default(uuid())
-  event      String
-  kind       LogKind
-  status     LogStatus  @default(OK)
-  sessionId  String?
-  model      String?
-  latencyMs  Int?
-  cost       Decimal?   @db.Decimal(10, 4)
-  tokensIn   Int?
-  tokensOut  Int?
-  detail     String?
-  createdAt  DateTime   @default(now())
+  id        String    @id @default(uuid())
+  event     String
+  kind      LogKind
+  status    LogStatus @default(OK)
+  sessionId String?
+  model     String?
+  latencyMs Int?
+  cost      Decimal?  @db.Decimal(10, 4)
+  tokensIn  Int?
+  tokensOut Int?
+  detail    String?
+  createdAt DateTime  @default(now())
 
   @@index([createdAt(sort: Desc)])
   @@index([kind, createdAt(sort: Desc)])
@@ -91,16 +91,16 @@ enum LogStatus {
 
 // PDF Ingest Extraction Jobs
 model IngestJob {
-  id             String         @id @default(uuid())
-  file           String
-  state          IngestJobState @default(QUEUED)
-  pct            Int            @default(0)
-  note           String?
-  page           Int            @default(1)
-  totalPages     Int?
-  extractedRows  ExtractedRow[]
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  id            String         @id @default(uuid())
+  file          String
+  state         IngestJobState @default(QUEUED)
+  pct           Int            @default(0)
+  note          String?
+  page          Int            @default(1)
+  totalPages    Int?
+  extractedRows ExtractedRow[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 
   @@map("ingest_jobs")
 }
@@ -119,7 +119,7 @@ model ExtractedRow {
   job       IngestJob     @relation(fields: [jobId], references: [id], onDelete: Cascade)
   name      String
   conf      String
-  fields    Json          // Key-value attributes (sku, price, weight, making)
+  fields    Json // Key-value attributes (sku, price, weight, making)
   verdict   ReviewVerdict @default(PENDING)
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
@@ -135,14 +135,14 @@ enum ReviewVerdict {
 
 // HeyGen Avatar Video Renders
 model AvatarRender {
-  id        String       @id @default(uuid())
-  script    String       @db.Text
-  voice     String
+  id          String      @id @default(uuid())
+  script      String      @db.Text
+  voice       String
   durationSec Int?
-  state     RenderState  @default(QUEUED)
-  videoUrl  String?
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
+  state       RenderState @default(QUEUED)
+  videoUrl    String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
   @@map("avatar_renders")
 }
@@ -227,4 +227,31 @@ model RetainedFact {
 
   @@index([sessionId])
   @@map("retained_facts")
+}
+
+// Avatar Knowledge Base
+// The avatar's answers are grounded in these rows and nothing else. Written from the
+// admin console at /admin/knowledge and read back per-question by lib/knowledgeRetrieval.ts,
+// so new knowledge is live on the next question without a rebuild.
+//
+// `keywords` is an array rather than a delimited string to match ProductSku.talkingPoints
+// and to let retrieval match a whole term instead of a substring of one.
+model AvatarKnowledge {
+  id        String   @id @default(uuid())
+  title     String?
+  content   String   @db.Text
+  category  String?
+  keywords  String[] @default([])
+  source    String?
+  isActive  Boolean  @default(true)
+  // Stable identity for a row that came from the seed import. Lets the import script be
+  // re-run without duplicating what it inserted last time. Null for hand-entered rows.
+  importKey String?  @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Retrieval reads active rows only, newest first; the admin list filters by category.
+  @@index([isActive, updatedAt(sort: Desc)])
+  @@index([category])
+  @@map("avatar_knowledge")
 }
