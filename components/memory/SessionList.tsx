@@ -2,6 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import { SessionStatus } from '@prisma/client';
 import { formatStamp } from '../../lib/conversationQuery';
+import { TAB_BY_ID } from '@/data/navigation';
 
 export interface SessionListItem {
   id: string;
@@ -52,7 +53,7 @@ export const SessionList: React.FC<SessionListProps> = ({ sessions, selectedId }
           return (
             <Link
               key={session.id}
-              href={`/memory?selected=${session.id}`}
+              href={`${TAB_BY_ID.memory.href}?selected=${session.id}`}
               scroll={false}
               className={`p-3 flex flex-col gap-1 transition-colors ${
                 isSelected

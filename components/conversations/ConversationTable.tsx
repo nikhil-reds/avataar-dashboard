@@ -6,11 +6,13 @@ import {
   formatDuration,
   formatStamp,
   isStale,
+  SORT_FIELDS,
   SORT_LABELS,
   type ConversationQuery,
   type SortField,
 } from '@/lib/conversationQuery';
 import type { ConversationRow } from '@/lib/conversations';
+import { TAB_BY_ID } from '@/data/navigation';
 
 interface ConversationTableProps {
   rows: ConversationRow[];
@@ -19,6 +21,8 @@ interface ConversationTableProps {
   total: number;
 }
 
+// Below `md` the row renders as a stacked card instead; these tracks apply at `md`+.
+// Sorting moves to the filter bar there, since the sort controls live in the header row.
 const GRID = 'grid grid-cols-[1fr_92px_64px_78px] gap-2';
 
 function SortHeader({
@@ -35,7 +39,7 @@ function SortHeader({
   // is what you want for every one of these (newest, most turns, longest).
   const nextDir = isActive && query.dir === 'desc' ? 'asc' : 'desc';
   const href =
-    '/conversations' +
+    TAB_BY_ID.conversations.href +
     buildSearchString(query, { sort: field, dir: nextDir, page: 1 }, selectedId);
 
   return (
@@ -75,8 +79,43 @@ export const ConversationTable: React.FC<ConversationTableProps> = ({
         </div>
       </div>
 
+      {/* The sort controls live in the column header, which is hidden on a phone —
+          so they reappear here as pills. Same links, same params. */}
+      <div className="md:hidden flex items-center gap-1.5 px-3 py-2 overflow-x-auto bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-zinc-800">
+        <span className="font-mono text-[10px] font-bold tracking-wider uppercase text-zinc-400 shrink-0">
+          sort
+        </span>
+        {SORT_FIELDS.map((field) => {
+          const isActive = query.sort === field;
+          const nextDir = isActive && query.dir === 'desc' ? 'asc' : 'desc';
+          return (
+            <Link
+              key={field}
+              href={
+                TAB_BY_ID.conversations.href +
+                buildSearchString(query, { sort: field, dir: nextDir, page: 1 }, selectedId)
+              }
+              scroll={false}
+              className={`shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11.5px] font-semibold transition-colors ${
+                isActive
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700'
+              }`}
+            >
+              {SORT_LABELS[field]}
+              {isActive &&
+                (query.dir === 'desc' ? (
+                  <ArrowDown className="w-3 h-3" />
+                ) : (
+                  <ArrowUp className="w-3 h-3" />
+                ))}
+            </Link>
+          );
+        })}
+      </div>
+
       <div
-        className={`${GRID} px-3 py-2.5 bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-zinc-800 font-mono text-[10px] font-bold tracking-wider uppercase text-zinc-400`}
+        className={`hidden md:grid ${GRID} px-3 py-2.5 bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-zinc-800 font-mono text-[10px] font-bold tracking-wider uppercase text-zinc-400`}
       >
         <div>session</div>
         <SortHeader field="startedAt" query={query} selectedId={selectedId} />
@@ -104,30 +143,53 @@ export const ConversationTable: React.FC<ConversationTableProps> = ({
           return (
             <Link
               key={row.id}
-              href={'/conversations' + buildSearchString(query, { selected: row.id })}
+              href={TAB_BY_ID.conversations.href + buildSearchString(query, { selected: row.id })}
               scroll={false}
-              className={`${GRID} px-3 py-3 items-center transition-colors text-xs ${
+              className={`block transition-colors text-xs ${
                 isSelected
-                  ? 'bg-indigo-50/70 dark:bg-indigo-950/30 border-l-4 border-indigo-600 pl-2'
+                  ? 'bg-indigo-50/70 dark:bg-indigo-950/30 ring-1 ring-inset ring-indigo-500/40'
                   : 'hover:bg-zinc-50 dark:hover:bg-zinc-800/40'
               }`}
             >
-              <div className="min-w-0 pr-2">
-                <div className="font-medium text-zinc-900 dark:text-zinc-100 truncate">
-                  {row.title ?? 'Untitled conversation'}
+              {/* Phone: title and status stay prominent; the three numeric columns
+                  become one meta line. */}
+              <div className="md:hidden flex flex-col gap-1 px-3 py-3">
+                <div className="flex justify-between items-start gap-2">
+                  <span className="font-medium text-zinc-900 dark:text-zinc-100 min-w-0">
+                    {row.title ?? 'Untitled conversation'}
+                  </span>
+                  <span className="shrink-0 font-mono text-[11.5px] text-zinc-600 dark:text-zinc-400">
+                    {row.turnCount} {row.turnCount === 1 ? 'turn' : 'turns'}
+                  </span>
                 </div>
                 <div className={`text-[11px] ${statusColor}`}>
                   {statusLabel} · <span className="font-mono">{row.id.slice(0, 8)}</span>
                 </div>
+                <div className="font-mono text-[11px] text-zinc-400 flex flex-wrap gap-x-1.5">
+                  <span>{formatStamp(row.startedAt)}</span>
+                  <span className="text-zinc-300 dark:text-zinc-600">·</span>
+                  <span>{formatDuration(row.durationSec)}</span>
+                </div>
               </div>
-              <div className="font-mono text-zinc-600 dark:text-zinc-400 text-[11.5px]">
-                {formatStamp(row.startedAt)}
-              </div>
-              <div className="font-mono text-zinc-600 dark:text-zinc-400 text-[11.5px]">
-                {row.turnCount}
-              </div>
-              <div className="font-mono text-zinc-600 dark:text-zinc-400 text-[11.5px]">
-                {formatDuration(row.durationSec)}
+
+              <div className={`hidden md:grid ${GRID} px-3 py-3 items-center`}>
+                <div className="min-w-0 pr-2">
+                  <div className="font-medium text-zinc-900 dark:text-zinc-100 truncate">
+                    {row.title ?? 'Untitled conversation'}
+                  </div>
+                  <div className={`text-[11px] ${statusColor}`}>
+                    {statusLabel} · <span className="font-mono">{row.id.slice(0, 8)}</span>
+                  </div>
+                </div>
+                <div className="font-mono text-zinc-600 dark:text-zinc-400 text-[11.5px]">
+                  {formatStamp(row.startedAt)}
+                </div>
+                <div className="font-mono text-zinc-600 dark:text-zinc-400 text-[11.5px]">
+                  {row.turnCount}
+                </div>
+                <div className="font-mono text-zinc-600 dark:text-zinc-400 text-[11.5px]">
+                  {formatDuration(row.durationSec)}
+                </div>
               </div>
             </Link>
           );

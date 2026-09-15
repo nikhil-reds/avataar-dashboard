@@ -40,7 +40,7 @@ export const TranscriptPanel: React.FC<TranscriptPanelProps> = ({ session }) => 
         )}
       </div>
 
-      <div className="p-4 flex flex-col gap-4 max-h-[560px] overflow-y-auto">
+      <div className="p-4 flex flex-col gap-4 max-h-[60vh] xl:max-h-[560px] overflow-y-auto">
         {exchanges.map((exchange, idx) => (
           <div key={exchange.question?.id ?? 'unprompted-' + idx} className="flex flex-col gap-2">
             {exchange.question && (

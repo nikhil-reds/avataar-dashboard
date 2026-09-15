@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { IngestJobState, type IngestJob } from '@prisma/client';
+import { TAB_BY_ID } from '@/data/navigation';
 
 interface ExtractionQueueProps {
   jobs: IngestJob[];
@@ -35,7 +36,7 @@ export const ExtractionQueue: React.FC<ExtractionQueueProps> = ({ jobs, selected
           return (
             <Link
               key={job.id}
-              href={`/ingest?job=${job.id}`}
+              href={`${TAB_BY_ID.ingest.href}?selected=${job.id}`}
               scroll={false}
               className={`flex flex-col gap-1.5 px-4 py-3 transition-colors ${
                 isSelected

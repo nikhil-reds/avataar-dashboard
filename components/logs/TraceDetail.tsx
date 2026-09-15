@@ -52,7 +52,7 @@ export const TraceDetail: React.FC<TraceDetailProps> = ({ record }) => {
           {record.event}
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {fields.map((field) => (
             <div
               key={field.k}

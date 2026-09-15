@@ -2,6 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { buildSearchString, type ConversationQuery } from '@/lib/conversationQuery';
+import { TAB_BY_ID } from '@/data/navigation';
 
 interface PaginationProps {
   query: ConversationQuery;
@@ -37,7 +38,7 @@ export const Pagination: React.FC<PaginationProps> = ({
       <div className="flex items-center gap-2">
         {query.page > 1 ? (
           <Link
-            href={'/conversations' + buildSearchString(query, { page: query.page - 1 }, selectedId)}
+            href={TAB_BY_ID.conversations.href + buildSearchString(query, { page: query.page - 1 }, selectedId)}
             scroll={false}
             className={linkClass}
           >
@@ -57,7 +58,7 @@ export const Pagination: React.FC<PaginationProps> = ({
 
         {query.page < pageCount ? (
           <Link
-            href={'/conversations' + buildSearchString(query, { page: query.page + 1 }, selectedId)}
+            href={TAB_BY_ID.conversations.href + buildSearchString(query, { page: query.page + 1 }, selectedId)}
             scroll={false}
             className={linkClass}
           >

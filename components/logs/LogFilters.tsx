@@ -57,7 +57,7 @@ export const LogFilters: React.FC<LogFiltersProps> = ({ kind, searchQuery }) => 
 
   return (
     <div className="flex gap-3 flex-wrap items-center">
-      <div className="flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-full border border-zinc-200/80 dark:border-zinc-700">
+      <div className="flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-full border border-zinc-200/80 dark:border-zinc-700 max-w-full overflow-x-auto">
         {LOG_KIND_FILTERS.map((item) => {
           const isActive = kind === item;
           return (
@@ -69,7 +69,7 @@ export const LogFilters: React.FC<LogFiltersProps> = ({ kind, searchQuery }) => 
                   else next.set('kind', item);
                 })
               }
-              className={`text-[12.5px] font-semibold px-3 py-1.5 rounded-full transition-all cursor-pointer ${
+              className={`shrink-0 text-[12.5px] font-semibold px-3 py-1.5 rounded-full transition-all cursor-pointer ${
                 isActive
                   ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-xs'
                   : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
@@ -81,7 +81,7 @@ export const LogFilters: React.FC<LogFiltersProps> = ({ kind, searchQuery }) => 
         })}
       </div>
 
-      <div className="relative flex-1 min-w-[220px]">
+      <div className="relative flex-1 w-full sm:w-auto sm:min-w-[220px]">
         {isPending ? (
           <Loader2 className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 animate-spin" />
         ) : (
