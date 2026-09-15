@@ -1,9 +1,9 @@
-import { Header } from '../../components/layout/Header';
-import { LogFilters } from '../../components/logs/LogFilters';
-import { LogTable } from '../../components/logs/LogTable';
-import { TraceDetail } from '../../components/logs/TraceDetail';
-import { TAB_BY_ID } from '../../data/navigation';
-import { listActivity, LOG_KIND_FILTERS, type LogKindFilter } from '../../lib/activity';
+import { Header } from '@/components/layout/Header';
+import { LogFilters } from '@/components/logs/LogFilters';
+import { LogTable } from '@/components/logs/LogTable';
+import { TraceDetail } from '@/components/logs/TraceDetail';
+import { TAB_BY_ID } from '@/data/navigation';
+import { listActivity, LOG_KIND_FILTERS, type LogKindFilter } from '@/lib/activity';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,6 +31,13 @@ export default async function ActiveLogPage({
       <Header activeTabDef={TAB_BY_ID.logs} />
 
       <div className="p-8 pb-16 flex flex-col gap-6 max-w-7xl">
+        <div className="font-mono text-[10.5px] tracking-widest uppercase text-zinc-400 font-semibold flex items-center gap-1.5 mb-2">
+          <span>apps</span>
+          <span>/</span>
+          <span className="text-indigo-600 dark:text-indigo-400 font-bold">
+            {TAB_BY_ID.logs.crumb}
+          </span>
+        </div>
         <div className="flex flex-col gap-4">
           <LogFilters kind={kind} searchQuery={q} />
 
@@ -48,3 +55,4 @@ export default async function ActiveLogPage({
     </>
   );
 }
+
