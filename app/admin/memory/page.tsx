@@ -3,9 +3,12 @@ import { Header } from '@/components/layout/Header';
 import { SessionList } from '@/components/memory/SessionList';
 import { TranscriptView } from '@/components/memory/TranscriptView';
 import { RetainedFacts } from '@/components/memory/RetainedFacts';
-import { TAB_BY_ID } from '@/data/navigation';
+import { BackToList } from '@/components/layout/BackToList';
+import { TAB_BY_ID, tabMetadata } from '@/data/navigation';
 import { prisma } from '@/lib/db';
 import { getConversation } from '@/lib/conversations';
+
+export const metadata = tabMetadata('memory');
 
 export const dynamic = 'force-dynamic';
 
@@ -34,13 +37,17 @@ export default async function MemoryPage({
   });
 
   const activeId = selectedId || sessions[0]?.id || null;
+
+  // Below `md`: list or transcript, never both. Raw param, not the resolved id,
+  // because the resolved one falls back to the first session.
+  const hasSelection = Boolean(selectedId);
   const active = activeId ? await getConversation(activeId) : null;
 
   return (
     <>
       <Header activeTabDef={TAB_BY_ID.memory} />
 
-      <div className="p-8 pb-16 flex flex-col gap-6 max-w-7xl">
+      <div className="p-4 sm:p-6 lg:p-8 pb-16 flex flex-col gap-5 sm:gap-6 max-w-7xl">
         <div className="font-mono text-[10.5px] tracking-widest uppercase text-zinc-400 font-semibold flex items-center gap-1.5 mb-2">
           <span>apps</span>
           <span>/</span>
@@ -61,10 +68,13 @@ export default async function MemoryPage({
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6 items-start">
-            <SessionList sessions={sessions} selectedId={activeId} />
+          <div className="grid grid-cols-1 xl:grid-cols-[280px_1fr] gap-6 items-start">
+            <div className={hasSelection ? 'hidden md:block' : ''}>
+              <SessionList sessions={sessions} selectedId={activeId} />
+            </div>
 
-            <div className="flex flex-col gap-6">
+            <div className={`flex flex-col gap-4 sm:gap-6 ${hasSelection ? '' : 'hidden md:flex'}`}>
+              {hasSelection && <BackToList href={TAB_BY_ID.memory.href} label="Back to sessions" />}
               <TranscriptView session={active} />
               <RetainedFacts facts={active?.facts ?? []} />
             </div>

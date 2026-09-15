@@ -1,8 +1,10 @@
 import { Header } from '@/components/layout/Header';
 import { CatalogueSearch } from '@/components/catalogue/CatalogueSearch';
 import { CatalogueTable } from '@/components/catalogue/CatalogueTable';
-import { TAB_BY_ID } from '@/data/navigation';
+import { TAB_BY_ID, tabMetadata } from '@/data/navigation';
 import { listSkus } from '@/lib/catalogue';
+
+export const metadata = tabMetadata('catalogue');
 
 export const dynamic = 'force-dynamic';
 
@@ -20,7 +22,7 @@ export default async function CataloguePage({
     <>
       <Header activeTabDef={TAB_BY_ID.catalogue} ctaHref={TAB_BY_ID.manual.href} />
 
-      <div className="p-8 pb-16 flex flex-col gap-6 max-w-7xl">
+      <div className="p-4 sm:p-6 lg:p-8 pb-16 flex flex-col gap-5 sm:gap-6 max-w-7xl">
         <div className="font-mono text-[10.5px] tracking-widest uppercase text-zinc-400 font-semibold flex items-center gap-1.5 mb-2">
           <span>apps</span>
           <span>/</span>

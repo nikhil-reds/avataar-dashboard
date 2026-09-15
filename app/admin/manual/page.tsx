@@ -76,7 +76,7 @@ export default function ManualEntryPage() {
     <>
       <Header activeTabDef={TAB_BY_ID.manual} onPrimaryClick={handleSave} />
 
-      <div className="p-8 pb-16 flex flex-col gap-6 max-w-7xl">
+      <div className="p-4 sm:p-6 lg:p-8 pb-16 flex flex-col gap-5 sm:gap-6 max-w-7xl">
         <div className="font-mono text-[10.5px] tracking-widest uppercase text-zinc-400 font-semibold flex items-center gap-1.5 mb-2">
           <span>apps</span>
           <span>/</span>
@@ -84,7 +84,7 @@ export default function ManualEntryPage() {
             {TAB_BY_ID.manual.crumb}
           </span>
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-6 items-start">
+        <div className="grid grid-cols-1 xl:grid-cols-[1.3fr_1fr] gap-6 items-start">
           <EntryForm
             form={manualForm}
             onChangeField={handleManualFieldChange}

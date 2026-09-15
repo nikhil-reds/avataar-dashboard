@@ -2,8 +2,10 @@ import { Header } from '@/components/layout/Header';
 import { AvatarPreview } from '@/components/avatar/AvatarPreview';
 import { RenderComposer } from '@/components/avatar/RenderComposer';
 import { RenderQueue } from '@/components/avatar/RenderQueue';
-import { TAB_BY_ID } from '@/data/navigation';
+import { TAB_BY_ID, tabMetadata } from '@/data/navigation';
 import { prisma } from '@/lib/db';
+
+export const metadata = tabMetadata('avatar');
 
 export const dynamic = 'force-dynamic';
 
@@ -19,7 +21,7 @@ export default async function AvatarStudioPage() {
     <>
       <Header activeTabDef={TAB_BY_ID.avatar} />
 
-      <div className="p-8 pb-16 flex flex-col gap-6 max-w-7xl">
+      <div className="p-4 sm:p-6 lg:p-8 pb-16 flex flex-col gap-5 sm:gap-6 max-w-7xl">
         <div className="font-mono text-[10.5px] tracking-widest uppercase text-zinc-400 font-semibold flex items-center gap-1.5 mb-2">
           <span>apps</span>
           <span>/</span>
@@ -32,7 +34,7 @@ export default async function AvatarStudioPage() {
           but nothing processes them into video yet.
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6 items-start">
+        <div className="grid grid-cols-1 xl:grid-cols-[300px_1fr] gap-6 items-start">
           <AvatarPreview voiceLabel={VOICES[0]} />
 
           <div className="flex flex-col gap-6">

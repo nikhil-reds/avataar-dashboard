@@ -3,11 +3,14 @@ import { ConversationFilters } from '@/components/conversations/ConversationFilt
 import { ConversationTable } from '@/components/conversations/ConversationTable';
 import { TranscriptPanel } from '@/components/conversations/TranscriptPanel';
 import { Pagination } from '@/components/conversations/Pagination';
-import { TAB_BY_ID } from '@/data/navigation';
+import { TAB_BY_ID, tabMetadata } from '@/data/navigation';
 import { getConversation, listConversations } from '@/lib/conversations';
-import { parseConversationQuery, type RawSearchParams } from '@/lib/conversationQuery';
+import { buildSearchString, parseConversationQuery, type RawSearchParams } from '@/lib/conversationQuery';
+import { BackToList } from '@/components/layout/BackToList';
 
 // Every render depends on the query string and live database rows.
+export const metadata = tabMetadata('conversations');
+
 export const dynamic = 'force-dynamic';
 
 function single(value: string | string[] | undefined): string {
@@ -23,6 +26,10 @@ export default async function ConversationsPage({
   const query = parseConversationQuery(raw);
   const selectedId = single(raw.selected) || null;
 
+  // Below `md`: list or transcript, never both.
+  const hasSelection = Boolean(selectedId);
+  const backHref = TAB_BY_ID.conversations.href + buildSearchString(query, { selected: null });
+
   const [list, selected] = await Promise.all([
     listConversations(query),
     selectedId ? getConversation(selectedId) : Promise.resolve(null),
@@ -32,7 +39,7 @@ export default async function ConversationsPage({
     <>
       <Header activeTabDef={TAB_BY_ID.conversations} />
 
-      <div className="p-8 pb-16 flex flex-col gap-6 max-w-7xl">
+      <div className="p-4 sm:p-6 lg:p-8 pb-16 flex flex-col gap-5 sm:gap-6 max-w-7xl">
         <div className="font-mono text-[10.5px] tracking-widest uppercase text-zinc-400 font-semibold flex items-center gap-1.5 mb-2">
           <span>apps</span>
           <span>/</span>
@@ -48,8 +55,8 @@ export default async function ConversationsPage({
           minTurns={query.minTurns}
         />
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1.55fr_1fr] gap-6 items-start">
-          <div className="flex flex-col gap-4">
+        <div className="grid grid-cols-1 xl:grid-cols-[1.55fr_1fr] gap-6 items-start">
+          <div className={`flex-col gap-4 ${hasSelection ? 'hidden md:flex' : 'flex'}`}>
             <ConversationTable
               rows={list.rows}
               query={query}
@@ -65,7 +72,10 @@ export default async function ConversationsPage({
             />
           </div>
 
-          <TranscriptPanel session={selected} />
+          <div className={`flex-col gap-2 ${hasSelection ? 'flex' : 'hidden md:flex'}`}>
+            {hasSelection && <BackToList href={backHref} />}
+            <TranscriptPanel session={selected} />
+          </div>
         </div>
       </div>
     </>
