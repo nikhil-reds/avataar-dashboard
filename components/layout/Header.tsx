@@ -43,13 +43,7 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <header className="flex items-end justify-between gap-6 flex-wrap px-8 py-5 border-b border-zinc-200/80 dark:border-zinc-800 bg-white/90 dark:bg-zinc-900/90 sticky top-0 z-10 backdrop-blur-md">
       <div className="flex flex-col gap-1 min-w-0">
-        <div className="font-mono text-[10.5px] tracking-widest uppercase text-zinc-400 font-semibold flex items-center gap-1.5">
-          <span>apps</span>
-          <span>/</span>
-          <span className="text-indigo-600 dark:text-indigo-400 font-bold">
-            {activeTabDef.crumb}
-          </span>
-        </div>
+
         <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-white">
           {activeTabDef.title}
         </h1>

@@ -5,7 +5,7 @@ import { NavTab, TabId } from '../types';
 export const TAB_DEFINITIONS: NavTab[] = [
   {
     id: 'dash',
-    href: '/dashboard',
+    href: '/admin/dashboard',
     label: 'Dashboard',
     badge: '',
     crumb: 'overview',
@@ -16,7 +16,7 @@ export const TAB_DEFINITIONS: NavTab[] = [
   },
   {
     id: 'logs',
-    href: '/activelog',
+    href: '/admin/activelog',
     label: 'Activity logs',
     badge: '',
     crumb: 'observability',
@@ -27,7 +27,7 @@ export const TAB_DEFINITIONS: NavTab[] = [
   },
   {
     id: 'conversations',
-    href: '/conversations',
+    href: '/admin/conversations',
     label: 'Conversations',
     badge: '',
     crumb: 'observability',
@@ -38,7 +38,7 @@ export const TAB_DEFINITIONS: NavTab[] = [
   },
   {
     id: 'catalogue',
-    href: '/catalogue',
+    href: '/admin/catalogue',
     label: 'Catalogue',
     badge: '',
     crumb: 'content',
@@ -49,7 +49,7 @@ export const TAB_DEFINITIONS: NavTab[] = [
   },
   {
     id: 'ingest',
-    href: '/ingest',
+    href: '/admin/ingest',
     label: 'PDF ingest',
     badge: '',
     crumb: 'content',
@@ -60,7 +60,7 @@ export const TAB_DEFINITIONS: NavTab[] = [
   },
   {
     id: 'manual',
-    href: '/manual',
+    href: '/admin/manual',
     label: 'Manual entry',
     badge: '',
     crumb: 'content',
@@ -71,7 +71,7 @@ export const TAB_DEFINITIONS: NavTab[] = [
   },
   {
     id: 'avatar',
-    href: '/avatar',
+    href: '/admin/avatar',
     label: 'Avatar studio',
     badge: '',
     crumb: 'avatar',
@@ -82,7 +82,7 @@ export const TAB_DEFINITIONS: NavTab[] = [
   },
   {
     id: 'memory',
-    href: '/memory',
+    href: '/admin/memory',
     label: 'Memory',
     badge: '',
     crumb: 'avatar',
