@@ -205,7 +205,7 @@ export default function AvatarPanel({
           being stretched across the viewport. `w-auto` + `aspect-[9/16]` sizes it
           off the available height; `max-w-full` takes over on screens too narrow
           for that, which keeps it from overflowing on a phone. */}
-      <div className="absolute inset-0 flex items-center justify-center p-6 sm:p-8">
+      <div className="absolute inset-0 flex items-center justify-center p-4 sm:p-6 lg:p-8">
         <div
           className={`relative h-full w-auto max-w-full aspect-[9/16] rounded-3xl overflow-hidden
                       transition-all duration-700
@@ -243,18 +243,20 @@ export default function AvatarPanel({
           {/* Voice chat could not start. The session is still usable — the avatar
               streams and speaks — so this informs rather than blocks. */}
           {micFailure && (
-            <div className="absolute top-4 inset-x-4 z-10 flex items-start gap-3 px-3.5 py-3 rounded-2xl
+            <div className="absolute top-4 inset-x-4 z-10 flex flex-col sm:flex-row sm:items-start gap-2.5 sm:gap-3 px-3.5 py-3 rounded-2xl
                             bg-surface-glass backdrop-blur-md border border-border-subtle shadow-lg">
-              <MicOff className="w-4 h-4 mt-0.5 shrink-0 text-[#b91c1c]" />
-              <div className="min-w-0 flex-1 flex flex-col gap-0.5">
-                <p className="text-[12px] font-semibold text-text-primary">Voice chat is off</p>
-                <p className="text-[11.5px] leading-snug text-text-muted">{micFailure.message}</p>
+              <div className="flex items-start gap-3 min-w-0 flex-1">
+                <MicOff className="w-4 h-4 mt-0.5 shrink-0 text-[#b91c1c]" />
+                <div className="min-w-0 flex flex-col gap-0.5">
+                  <p className="text-[12px] font-semibold text-text-primary">Voice chat is off</p>
+                  <p className="text-[11.5px] leading-snug text-text-muted">{micFailure.message}</p>
+                </div>
               </div>
               {micFailure.retryable && (
                 <button
                   onClick={retryMic}
                   disabled={micRetrying}
-                  className="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11.5px] font-semibold
+                  className="shrink-0 self-end sm:self-auto flex items-center justify-center gap-1.5 px-3 py-2 min-h-9 rounded-lg text-[11.5px] font-semibold
                              text-white bg-accent hover:bg-[#123080] active:scale-[0.97] transition-all
                              disabled:opacity-60 disabled:cursor-wait"
                 >
@@ -288,7 +290,7 @@ export default function AvatarPanel({
       {/* Same portrait frame, so the placeholder occupies exactly the space the
           avatar is about to fill. */}
       {phase === 'connecting' && (
-        <div className="absolute inset-0 flex items-center justify-center p-6 sm:p-8">
+        <div className="absolute inset-0 flex items-center justify-center p-4 sm:p-6 lg:p-8">
           <div className="relative h-full w-auto max-w-full aspect-[9/16] rounded-3xl overflow-hidden border border-border-subtle">
             <AvatarSkeleton />
           </div>
@@ -297,7 +299,15 @@ export default function AvatarPanel({
 
       {/* Single control for the whole stage, parked in the bottom-right corner so it
           stays in one place across every phase. */}
-      <div className="absolute bottom-6 right-6 z-30 flex items-center gap-3">
+      <div
+        className="absolute z-30 flex items-center gap-3"
+        style={{
+          // Keeps the control clear of the iOS home indicator and, in landscape, the
+          // notch cut-out. Falls back to the plain 1.5rem where insets are 0.
+          bottom: 'max(1.5rem, env(safe-area-inset-bottom))',
+          right: 'max(1.5rem, env(safe-area-inset-right))',
+        }}
+      >
         {error && (
           <p className="max-w-60 text-right text-[12px] leading-snug font-medium text-[#b91c1c]">
             {error}

@@ -26,7 +26,7 @@ export function ScreenSaver() {
                    bg-[radial-gradient(circle,rgba(11,34,101,0.08)_0%,transparent_65%)]"
       />
 
-      <div className="relative h-full flex flex-col items-center justify-center gap-9 px-8 text-center">
+      <div className="relative h-full flex flex-col items-center justify-center gap-6 sm:gap-9 px-8 text-center">
         <div className="relative animate-breathe">
           <span
             aria-hidden
@@ -44,7 +44,7 @@ export function ScreenSaver() {
             height={2016}
             priority
             sizes="(max-width: 640px) 240px, 340px"
-            className="relative w-60 sm:w-85 h-auto select-none drop-shadow-[0_10px_26px_rgba(11,34,101,0.18)]"
+            className="relative w-[min(15rem,40vh)] sm:w-[min(21.25rem,46vh)] h-auto select-none drop-shadow-[0_10px_26px_rgba(11,34,101,0.18)]"
           />
         </div>
 
@@ -55,13 +55,13 @@ export function ScreenSaver() {
           <h1 className="text-[22px] sm:text-[26px] font-bold tracking-tight text-text-primary text-balance">
             Talk to a Trifast specialist, any time
           </h1>
-          <p className="text-[13.5px] leading-relaxed text-text-muted text-balance">
+          <p className="text-[13.5px] leading-relaxed text-text-muted text-balance [@media(max-height:480px)]:hidden">
             Ask about any fastener — specifications, materials, stock and lead
             times. Connect to start a live conversation.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 text-[11.5px] font-medium text-text-muted">
+        <div className="flex items-center gap-2 text-[11.5px] font-medium text-text-muted [@media(max-height:430px)]:hidden">
           <span className="w-1.5 h-1.5 rounded-full bg-accent/50 animate-pulse-dot" />
           Standing by
         </div>
