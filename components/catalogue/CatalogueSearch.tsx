@@ -46,7 +46,7 @@ export const CatalogueSearch: React.FC<CatalogueSearchProps> = ({
 
   return (
     <div className="flex items-center gap-3 flex-wrap">
-      <div className="relative flex-1 min-w-[260px]">
+      <div className="relative flex-1 w-full sm:w-auto sm:min-w-[260px]">
         {isPending ? (
           <Loader2 className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 animate-spin" />
         ) : (
