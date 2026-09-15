@@ -1,31 +1,40 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { MicOff, Loader2 } from 'lucide-react';
 import { fetchSessionToken, stopSessionOnServer } from '@/lib/liveavatar';
 import { useConversationRecorder } from '@/lib/useConversationRecorder';
+import { describeMicFailure, type MicFailure } from '@/lib/microphone';
+import { ScreenSaver } from '@/components/avatar-stage/ScreenSaver';
+import { AvatarSkeleton } from '@/components/avatar-stage/AvatarSkeleton';
 import type { LiveAvatarSession } from '@heygen/liveavatar-web-sdk';
 
+/**
+ * `connecting` covers everything between the click and the first video frame —
+ * token mint, WebRTC negotiation and stream attach — because that whole stretch
+ * looks identical to the shopper: a screen with no avatar on it yet.
+ */
+export type AvatarPhase = 'idle' | 'connecting' | 'live' | 'ended';
+
 export interface AvatarPanelProps {
-  isActive: boolean;
-  onStart: () => void;
-  onEnd: () => void;
+  onPhaseChange?: (phase: AvatarPhase) => void;
   onUserTranscription?: (text: string) => void;
   onAvatarTranscription?: (text: string) => void;
   onSessionReady?: (speak: (text: string) => void) => void;
 }
 
 export default function AvatarPanel({
-  isActive,
-  onStart,
-  onEnd,
+  onPhaseChange,
   onUserTranscription,
   onAvatarTranscription,
   onSessionReady,
 }: AvatarPanelProps) {
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [isLoading, setIsLoading]   = useState(false);
-  const [error, setError]           = useState<string | null>(null);
+  const [phase, setPhase]             = useState<AvatarPhase>('idle');
+  const [isSpeaking, setIsSpeaking]   = useState(false);
+  const [error, setError]             = useState<string | null>(null);
   const [audioLocked, setAudioLocked] = useState(false);
+  const [micFailure, setMicFailure]   = useState<MicFailure | null>(null);
+  const [micRetrying, setMicRetrying] = useState(false);
 
   const recorder = useConversationRecorder();
 
@@ -35,13 +44,19 @@ export default function AvatarPanel({
   const keepAliveRef    = useRef<ReturnType<typeof setInterval> | null>(null);
   const startingRef     = useRef(false);
 
+  const isLive = phase === 'live';
+
   useEffect(() => {
-    if (!isActive) return;
+    onPhaseChange?.(phase);
+  }, [phase, onPhaseChange]);
+
+  useEffect(() => {
+    if (!isLive) return;
     keepAliveRef.current = setInterval(async () => {
       try { await sessionRef.current?.keepAlive(); } catch {}
     }, 120_000);
     return () => { if (keepAliveRef.current) clearInterval(keepAliveRef.current); };
-  }, [isActive]);
+  }, [isLive]);
 
   useEffect(() => {
     return () => {
@@ -59,12 +74,45 @@ export default function AvatarPanel({
     setAudioLocked(false);
   }, []);
 
+  /**
+   * Bring the shopper's microphone up.
+   *
+   * A missing, blocked or busy microphone is a normal condition on a kiosk, not a
+   * crash: the avatar still streams and speaks, the shopper just cannot talk back.
+   * So the failure is surfaced in the UI with something to do about it, and logged
+   * with `console.warn` — `console.error` would raise it in the Next dev overlay as
+   * though the page had thrown.
+   */
+  const startVoiceChat = useCallback(async (session: LiveAvatarSession) => {
+    try {
+      await session.voiceChat.start();
+      setMicFailure(null);
+      return true;
+    } catch (err) {
+      const failure = describeMicFailure(err);
+      console.warn(`[LiveAvatar] voice chat unavailable (${failure.reason}):`, err);
+      setMicFailure(failure);
+      return false;
+    }
+  }, []);
+
+  // `voiceChat.start()` resets itself to INACTIVE when it throws, so retrying after
+  // the shopper plugs in a mic or grants permission works on the same session.
+  const retryMic = useCallback(async () => {
+    const session = sessionRef.current;
+    if (!session || micRetrying) return;
+    setMicRetrying(true);
+    await startVoiceChat(session);
+    setMicRetrying(false);
+  }, [micRetrying, startVoiceChat]);
+
   const handleStart = useCallback(async () => {
     if (startingRef.current) return;
     startingRef.current = true;
-    setIsLoading(true);
+    setPhase('connecting');
     setError(null);
     setAudioLocked(false);
+    setMicFailure(null);
 
     try {
       const { LiveAvatarSession, SessionEvent, AgentEventsEnum } = await import(
@@ -86,11 +134,15 @@ export default function AvatarPanel({
           video.muted = true;
           setAudioLocked(true);
         });
+        // The skeleton is held until here rather than until `start()` resolves,
+        // so it is never replaced by an empty video element.
+        setPhase('live');
       });
 
       session.on(SessionEvent.SESSION_DISCONNECTED, () => {
         setIsSpeaking(false);
         setAudioLocked(false);
+        setPhase('ended');
       });
 
       session.on(AgentEventsEnum.AVATAR_SPEAK_STARTED, () => setIsSpeaking(true));
@@ -110,6 +162,7 @@ export default function AvatarPanel({
       session.on(AgentEventsEnum.SESSION_STOPPED, () => {
         setIsSpeaking(false);
         setAudioLocked(false);
+        setPhase('ended');
         void recorder.end();
       });
 
@@ -118,19 +171,18 @@ export default function AvatarPanel({
       // Begins buffering immediately, so the avatar's opening line is captured while the
       // session record is still being created.
       void recorder.start(session.sessionId);
-      await session.voiceChat.start().catch((e) => console.error('[LiveAvatar] voiceChat.start() failed:', e));
+      await startVoiceChat(session);
 
       onSessionReady?.((text: string) => session.message(text));
-      onStart();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to start session');
       sessionRef.current = null;
       sessionTokenRef.current = null;
+      setPhase('idle');
     } finally {
-      setIsLoading(false);
       startingRef.current = false;
     }
-  }, [onStart, onUserTranscription, onAvatarTranscription, onSessionReady, recorder]);
+  }, [onUserTranscription, onAvatarTranscription, onSessionReady, recorder, startVoiceChat]);
 
   const handleEnd = useCallback(async () => {
     if (keepAliveRef.current) clearInterval(keepAliveRef.current);
@@ -141,127 +193,167 @@ export default function AvatarPanel({
     sessionTokenRef.current = null;
     setIsSpeaking(false);
     setAudioLocked(false);
-    onEnd();
-  }, [onEnd, recorder]);
+    setMicFailure(null);
+    setPhase('ended');
+  }, [recorder]);
 
   return (
-    <section className="relative flex flex-col items-center justify-center w-full h-full overflow-hidden bg-bg-primary p-6 transition-all duration-700">
+    <section className="relative w-full h-full overflow-hidden bg-bg-primary">
+      {(phase === 'idle' || phase === 'ended') && <ScreenSaver />}
 
-      {/* Ambient glow behind video when live */}
-      {isActive && (
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <div className="w-105 h-105 rounded-full bg-[radial-gradient(circle,rgba(99,102,241,0.12)_0%,transparent_70%)] blur-3xl" />
+      {/* The avatar is a portrait figure, so it gets a portrait frame rather than
+          being stretched across the viewport. `w-auto` + `aspect-[9/16]` sizes it
+          off the available height; `max-w-full` takes over on screens too narrow
+          for that, which keeps it from overflowing on a phone. */}
+      <div className="absolute inset-0 flex items-center justify-center p-6 sm:p-8">
+        <div
+          className={`relative h-full w-auto max-w-full aspect-[9/16] rounded-3xl overflow-hidden
+                      transition-all duration-700
+            ${isLive
+              ? 'opacity-100 scale-100 border border-accent/20 shadow-[0_18px_60px_rgba(11,34,101,0.22)]'
+              : 'opacity-0 scale-[0.97] pointer-events-none'
+            }`}
+        >
+          {/* Always mounted: `session.attach()` fires on SESSION_STREAM_READY and needs
+              a real element to hand the track to, which a conditionally rendered one
+              would not yet provide. */}
+          <video
+            ref={videoRef}
+            className="w-full h-full object-cover bg-bg-tertiary"
+            autoPlay
+            playsInline
+          />
+
+          {/* Tap-to-unlock audio overlay */}
+          {audioLocked && (
+            <button
+              onClick={unlockAudio}
+              className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-black/55 backdrop-blur-[2px]"
+            >
+              <div className="w-14 h-14 rounded-full bg-white/10 border border-white/25 flex items-center justify-center">
+                <svg className="w-7 h-7 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                  <path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07" />
+                </svg>
+              </div>
+              <p className="text-white/90 text-[13px] font-medium">Tap to enable audio</p>
+            </button>
+          )}
+
+          {/* Voice chat could not start. The session is still usable — the avatar
+              streams and speaks — so this informs rather than blocks. */}
+          {micFailure && (
+            <div className="absolute top-4 inset-x-4 z-10 flex items-start gap-3 px-3.5 py-3 rounded-2xl
+                            bg-surface-glass backdrop-blur-md border border-border-subtle shadow-lg">
+              <MicOff className="w-4 h-4 mt-0.5 shrink-0 text-[#b91c1c]" />
+              <div className="min-w-0 flex-1 flex flex-col gap-0.5">
+                <p className="text-[12px] font-semibold text-text-primary">Voice chat is off</p>
+                <p className="text-[11.5px] leading-snug text-text-muted">{micFailure.message}</p>
+              </div>
+              {micFailure.retryable && (
+                <button
+                  onClick={retryMic}
+                  disabled={micRetrying}
+                  className="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11.5px] font-semibold
+                             text-white bg-accent hover:bg-[#123080] active:scale-[0.97] transition-all
+                             disabled:opacity-60 disabled:cursor-wait"
+                >
+                  {micRetrying && <Loader2 className="w-3 h-3 animate-spin" />}
+                  {micRetrying ? 'Trying…' : 'Try again'}
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Speaking waveform badge */}
+          <div
+            className={`absolute bottom-5 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 px-3.5 py-2 rounded-full
+                        bg-surface-glass backdrop-blur-md border border-border-subtle shadow-lg pointer-events-none transition-all duration-300
+              ${isSpeaking ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1'}`}
+          >
+            <div className="flex items-end gap-0.75 h-3.5">
+              {[0, 0.15, 0.3, 0.45, 0.6].map((delay, i) => (
+                <span
+                  key={i}
+                  className="w-0.75 rounded-xs bg-accent animate-bar-bounce origin-bottom"
+                  style={{ height: [6, 12, 8, 14, 6][i], animationDelay: `${delay}s` }}
+                />
+              ))}
+            </div>
+            <span className="text-[11px] font-medium text-text-primary">Speaking</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Same portrait frame, so the placeholder occupies exactly the space the
+          avatar is about to fill. */}
+      {phase === 'connecting' && (
+        <div className="absolute inset-0 flex items-center justify-center p-6 sm:p-8">
+          <div className="relative h-full w-auto max-w-full aspect-[9/16] rounded-3xl overflow-hidden border border-border-subtle">
+            <AvatarSkeleton />
+          </div>
         </div>
       )}
 
-      {/* Video card */}
-      <div
-        className={`group relative w-full max-w-120 flex-1 min-h-0 rounded-3xl overflow-hidden shadow-2xl transition-all duration-500
-          ${isActive
-            ? 'border border-accent/25 shadow-[0_8px_40px_rgba(0,0,0,0.5),0_0_60px_rgba(99,102,241,0.12)]'
-            : 'border border-border-subtle shadow-[0_4px_24px_rgba(0,0,0,0.3)]'
-          }`}
-      >
-        {/* Stream */}
-        <video
-          ref={videoRef}
-          className="w-full h-full object-cover block bg-bg-tertiary"
-          autoPlay
-          playsInline
-        />
-
-        {/* Tap-to-unlock audio overlay */}
-        {audioLocked && (
-          <button
-            onClick={(e) => { e.stopPropagation(); unlockAudio(); }}
-            className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-black/55 backdrop-blur-[2px] transition-opacity"
-          >
-            <div className="w-14 h-14 rounded-full bg-white/10 border border-white/25 flex items-center justify-center">
-              <svg className="w-7 h-7 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-                <path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07" />
-              </svg>
-            </div>
-            <p className="text-white/90 text-[13px] font-medium">Tap to enable audio</p>
-          </button>
+      {/* Single control for the whole stage, parked in the bottom-right corner so it
+          stays in one place across every phase. */}
+      <div className="absolute bottom-6 right-6 z-30 flex items-center gap-3">
+        {error && (
+          <p className="max-w-60 text-right text-[12px] leading-snug font-medium text-[#b91c1c]">
+            {error}
+          </p>
         )}
-
-        {/* Idle placeholder — shown when not active */}
-        {!isActive && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 bg-linear-to-b from-bg-tertiary to-bg-secondary">
-            <div className="relative">
-              <div className="w-25 h-25 rounded-full bg-linear-to-br from-accent/15 to-accent/5 border border-accent/15 flex items-center justify-center">
-                <svg className="w-10 h-10 text-accent/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
-                  <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
-                  <circle cx="12" cy="7" r="4" />
-                </svg>
-              </div>
-              <div className="absolute -inset-3.5 rounded-full border border-dashed border-accent/15 animate-spin-slow" />
-            </div>
-
-            {error ? (
-              <p className="text-[12px] text-[#ef4444] text-center max-w-55 leading-relaxed px-4">{error}</p>
-            ) : (
-              <p className="text-[12px] text-text-muted text-center max-w-50 leading-relaxed">
-                Start a session to connect with the AI Avatar
-              </p>
-            )}
-
-            {/* Start Session button — always visible in idle state */}
-            <button
-              onClick={handleStart}
-              disabled={isLoading}
-              className="group/btn flex items-center gap-2.5 px-7 py-3 rounded-full bg-accent text-white text-[13px] font-semibold
-                         shadow-[0_2px_20px_rgba(99,102,241,0.25)] hover:shadow-[0_4px_28px_rgba(99,102,241,0.4)]
-                         hover:bg-[#5558e6] active:scale-[0.97] transition-all duration-200
-                         disabled:opacity-60 disabled:cursor-wait"
-            >
-              {isLoading ? (
-                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                <svg className="w-4 h-4 fill-current transition-transform group-hover/btn:scale-110" viewBox="0 0 24 24">
-                  <path d="M8 5v14l11-7z" />
-                </svg>
-              )}
-              {isLoading ? 'Connecting…' : 'Start Session'}
-            </button>
-          </div>
-        )}
-
-        {/* End Session hover overlay — shown only when active, on hover */}
-        {isActive && !audioLocked && (
-          <div className="pointer-events-none absolute inset-0 z-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-            <button
-              onClick={handleEnd}
-              className="pointer-events-auto flex items-center gap-2.5 px-6 py-3 rounded-full
-                         bg-black/40 backdrop-blur-md border border-white/20 text-white text-[13px] font-semibold
-                         hover:bg-[#ef4444]/70 hover:border-[#ef4444]/50 active:scale-[0.97] transition-all duration-200 shadow-lg"
-            >
-              <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-                <rect x="5" y="5" width="14" height="14" rx="2" />
-              </svg>
-              End Session
-            </button>
-          </div>
-        )}
-
-        {/* Speaking waveform badge */}
-        <div
-          className={`absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 px-3.5 py-2 rounded-full bg-bg-card/80 backdrop-blur-md border border-border-subtle shadow-lg pointer-events-none transition-all duration-300
-            ${isSpeaking ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1'}`}
-        >
-          <div className="flex items-end gap-0.75 h-3.5">
-            {[0, 0.15, 0.3, 0.45, 0.6].map((delay, i) => (
-              <span
-                key={i}
-                className="w-0.75 rounded-xs bg-accent animate-bar-bounce"
-                style={{ height: [6, 12, 8, 14, 6][i], animationDelay: `${delay}s` }}
-              />
-            ))}
-          </div>
-          <span className="text-[11px] font-medium text-text-primary">Speaking</span>
-        </div>
+        <StageControl phase={phase} onConnect={handleStart} onDisconnect={handleEnd} />
       </div>
     </section>
+  );
+}
+
+const CONTROL_BASE =
+  'flex items-center gap-2.5 px-7 py-3.5 rounded-full text-[13.5px] font-semibold text-white ' +
+  'active:scale-[0.97] transition-all duration-200 disabled:cursor-wait';
+
+function StageControl({
+  phase,
+  onConnect,
+  onDisconnect,
+}: {
+  phase: AvatarPhase;
+  onConnect: () => void;
+  onDisconnect: () => void;
+}) {
+  if (phase === 'connecting') {
+    return (
+      <button disabled className={`${CONTROL_BASE} bg-accent/60`}>
+        <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+        Connecting…
+      </button>
+    );
+  }
+
+  if (phase === 'live') {
+    return (
+      <button
+        onClick={onDisconnect}
+        className={`${CONTROL_BASE} bg-[#b91c1c] hover:bg-[#991b1b] shadow-[0_4px_24px_rgba(185,28,28,0.32)]`}
+      >
+        <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+          <rect x="5" y="5" width="14" height="14" rx="2" />
+        </svg>
+        End session
+      </button>
+    );
+  }
+
+  return (
+    <button
+      onClick={onConnect}
+      className={`${CONTROL_BASE} group bg-accent hover:bg-[#123080] shadow-[0_4px_28px_rgba(11,34,101,0.28)] hover:shadow-[0_6px_34px_rgba(11,34,101,0.4)]`}
+    >
+      <svg className="w-4 h-4 fill-current transition-transform group-hover:scale-110" viewBox="0 0 24 24">
+        <path d="M8 5v14l11-7z" />
+      </svg>
+      {phase === 'ended' ? 'Connect again' : 'Connect'}
+    </button>
   );
 }
