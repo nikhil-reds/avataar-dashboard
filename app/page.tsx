@@ -37,7 +37,6 @@ export default function AIVideoAgent() {
 
   return (
     <div className="flex flex-col h-dvh w-full overflow-hidden bg-bg-primary text-text-primary">
-      <Header status={sessionStatus} timer={formatTime(seconds)} />
 
       <main className="flex-1 flex items-center justify-center overflow-hidden min-h-0">
         <AvatarPanel
