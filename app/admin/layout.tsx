@@ -1,14 +1,38 @@
 import React from "react";
 import type { Metadata } from "next";
-import { Sidebar } from '@/components/layout/Sidebar';
+import { AdminShell } from '@/components/layout/AdminShell';
 import { TAB_DEFINITIONS } from '@/data/navigation';
 import { getNavBadges } from '@/lib/dashboard';
+import { OG_BASE, OG_IMAGE } from '@/lib/siteMetadata';
 import type { TabId } from '@/types';
 
+/**
+ * Admin defaults. The template replaces the root one for everything under
+ * `/admin`, so an operator with several tabs open can tell the console apart from
+ * the shopper-facing avatar at a glance.
+ *
+ * Indexing is off across the whole section: this is an internal console with no
+ * auth in front of it, and there is nothing here that belongs in search results.
+ */
 export const metadata: Metadata = {
-  title: "Rubenius · Avatar Commerce Admin",
+  title: {
+    default: "Admin console",
+    template: "%s · Trifast Admin",
+  },
   description:
     "Admin console for the avatar commerce pipeline: catalogue, ingest, renders and memory.",
+  robots: {
+    index: false,
+    follow: false,
+    nocache: true,
+    googleBot: { index: false, follow: false, noimageindex: true },
+  },
+  openGraph: { ...OG_BASE, title: "Trifast Admin console", url: "/admin" },
+  twitter: {
+    card: "summary_large_image",
+    title: "Trifast Admin console",
+    images: [OG_IMAGE.url],
+  },
 };
 
 export default async function AdminLayout({
@@ -30,12 +54,5 @@ export default async function AdminLayout({
     badge: counts[tab.id] ? String(counts[tab.id]) : '',
   }));
 
-  return (
-    <div className="flex min-h-screen bg-[var(--background)] text-zinc-900 dark:text-zinc-100 transition-colors">
-      <Sidebar tabs={tabs} />
-      <main className="flex-1 min-w-0 flex flex-col">
-        {children}
-      </main>
-    </div>
-  );
+  return <AdminShell tabs={tabs}>{children}</AdminShell>;
 }

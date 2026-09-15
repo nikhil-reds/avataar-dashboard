@@ -56,12 +56,12 @@ export const ThemeToggle: React.FC = () => {
       onClick={toggleTheme}
       title="Toggle light / dark mode"
       aria-label="Toggle light / dark mode"
-      className="flex items-center gap-2 text-[12px] font-semibold text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 hover:text-zinc-900 dark:hover:text-white active:scale-[0.98] transition-all px-3 py-2 rounded-lg cursor-pointer"
+      className="flex items-center justify-center gap-2 text-[12px] font-semibold text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 hover:text-zinc-900 dark:hover:text-white active:scale-[0.98] transition-all w-11 h-11 sm:w-auto sm:h-auto sm:px-3 sm:py-2 rounded-xl sm:rounded-lg cursor-pointer"
     >
-      <Moon className="w-3.5 h-3.5 dark:hidden" />
-      <Sun className="w-3.5 h-3.5 hidden dark:block" />
-      <span className="dark:hidden">Dark</span>
-      <span className="hidden dark:inline">Light</span>
+      <Moon className="w-4 h-4 sm:w-3.5 sm:h-3.5 dark:hidden" />
+      <Sun className="w-4 h-4 sm:w-3.5 sm:h-3.5 hidden dark:block" />
+      <span className="hidden sm:inline dark:hidden">Dark</span>
+      <span className="hidden sm:dark:inline">Light</span>
     </button>
   );
 };
