@@ -48,9 +48,13 @@ services:
       # Qwen3 is a multi-gigabyte download.
       - ollama_models:/root/.ollama
     environment:
-      # Hold the model in memory between turns. Without this it unloads after 5 minutes
-      # and the next question pays the whole load cost again mid-conversation.
-      OLLAMA_KEEP_ALIVE: 30m
+      # Never unload. The default drops the model after 5 minutes idle, which means the
+      # first question after any pause — exactly the one a visitor asks — pays a multi-
+      # second reload before a single token is generated.
+      OLLAMA_KEEP_ALIVE: "-1"
+      # Frees KV-cache VRAM, which is what decides how much of the model fits on a 4GB
+      # card. Harmless on larger ones.
+      OLLAMA_FLASH_ATTENTION: "1"
     # GPU passthrough. Requires WSL2 with the NVIDIA Container Toolkit; if the container
     # fails to start, delete this `deploy` block and Ollama will run on CPU instead.
     deploy:
