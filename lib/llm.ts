@@ -8,10 +8,17 @@
  */
 
 const DEFAULT_BASE_URL = 'http://localhost:11434';
-const DEFAULT_MODEL = 'qwen3:1.7b';
+const DEFAULT_MODEL = 'qwen3:0.6b';
 
-/** Bounds the spoken answer. The avatar says it out loud, so it must stay short. */
-const MAX_OUTPUT_TOKENS = 400;
+/**
+ * Bounds the spoken answer, and with it the latency.
+ *
+ * Decode is ~98% of the time a shopper spends waiting and its cost is linear in tokens
+ * generated, so this is a hard ceiling on how long the silence can get. 80 tokens is
+ * comfortably above the ~40 words the prompt asks for, so it only truncates a genuine
+ * runaway rather than ordinary answers.
+ */
+const MAX_OUTPUT_TOKENS = 80;
 const TEMPERATURE = 0.7;
 
 /**
@@ -74,6 +81,48 @@ export function stripReasoning(text: string): string {
   out = out.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/<think>[\s\S]*$/i, '');
 
   return out.trim();
+}
+
+/** Punctuation and spacing differ between the question and its echo; identity does not. */
+function normalise(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Removes a question the model repeated back before answering.
+ *
+ * Small models open with "Do you have an office in Mumbai? I don't have that information."
+ * The avatar speaks whatever it is handed, so the shopper would hear their own question
+ * read back to them. The prompt asks the model not to do this; this is the guarantee.
+ *
+ * Deliberately conservative: it acts only when the opening sentence normalises to exactly
+ * the question, so a genuine answer that merely reuses a few of the question's words is
+ * never touched.
+ *
+ * Returns '' when the reply is nothing but the question repeated — qwen3:0.6b does this on
+ * yes/no questions the knowledge base does not cover. There is no answer in that reply to
+ * salvage, and an empty string tells the caller to speak its fallback line instead, which
+ * beats having the avatar parrot the shopper back at themselves.
+ */
+export function stripEchoedQuestion(answer: string, question: string): string {
+  const target = normalise(question);
+  if (!target) return answer;
+
+  const trimmed = answer.trim();
+  if (normalise(trimmed) === target) return '';
+
+  // Split after the first sentence-ending mark, keeping the remainder intact.
+  const match = /^([^.!?]*[.!?])\s*([\s\S]*)$/.exec(trimmed);
+  if (!match) return answer;
+
+  const [, opening, rest] = match;
+  if (!rest.trim()) return answer;
+
+  return normalise(opening) === target ? rest.trim() : answer;
 }
 
 /**
@@ -150,7 +199,7 @@ export async function generateAnswer(
 
   const data = await res.json();
   const raw = typeof data?.message?.content === 'string' ? data.message.content : '';
-  const text = stripReasoning(raw);
+  const text = stripEchoedQuestion(stripReasoning(raw), message);
 
   return {
     text,
@@ -159,4 +208,31 @@ export async function generateAnswer(
     tokensIn: typeof data?.prompt_eval_count === 'number' ? data.prompt_eval_count : null,
     tokensOut: typeof data?.eval_count === 'number' ? data.eval_count : null,
   };
+}
+
+/**
+ * Loads the model into VRAM without generating anything.
+ *
+ * The first question of a session is the one a visitor judges the avatar on, and it is
+ * also the one that pays for loading the model if it is not already resident. Calling
+ * this when the avatar session starts moves that cost into the seconds the shopper spends
+ * waiting for the video stream, where it is invisible.
+ *
+ * Best effort by design: a failure here only means the first answer is slower, so it is
+ * reported and swallowed rather than surfaced.
+ */
+export async function warmUpModel(): Promise<boolean> {
+  try {
+    const res = await fetch(`${llmBaseUrl()}/api/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      // An empty prompt tells Ollama to load the model and stop, generating no tokens.
+      body: JSON.stringify({ model: llmModel(), prompt: '', keep_alive: -1 }),
+    });
+    return res.ok;
+  } catch (err) {
+    console.error('[llm] warm-up failed', err);
+    return false;
+  }
 }
