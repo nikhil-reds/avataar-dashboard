@@ -39,64 +39,74 @@ function describeChange(today: number, yesterday: number): { text: string; color
  * recorded yet the card says so rather than showing a plausible-looking figure.
  */
 export async function getStats(): Promise<StatItem[]> {
-  const today = startOfToday();
-  const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+  try {
+    const today = startOfToday();
+    const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
 
-  const [
-    sessionsToday,
-    sessionsYesterday,
-    questionsToday,
-    chatLatencies,
-    skuTotal,
-    skuInReview,
-  ] = await Promise.all([
-    prisma.shopperSession.count({ where: { startedAt: { gte: today } } }),
-    prisma.shopperSession.count({ where: { startedAt: { gte: yesterday, lt: today } } }),
-    prisma.sessionTurn.count({ where: { who: SpeakerRole.SHOPPER, createdAt: { gte: today } } }),
-    prisma.activityLog.aggregate({
-      where: { kind: LogKind.CHAT, createdAt: { gte: today }, latencyMs: { not: null } },
-      _avg: { latencyMs: true },
-      _count: true,
-    }),
-    prisma.productSku.count(),
-    prisma.productSku.count({ where: { state: SkuState.REVIEW } }),
-  ]);
+    const [
+      sessionsToday,
+      sessionsYesterday,
+      questionsToday,
+      chatLatencies,
+      skuTotal,
+      skuInReview,
+    ] = await Promise.all([
+      prisma.shopperSession.count({ where: { startedAt: { gte: today } } }),
+      prisma.shopperSession.count({ where: { startedAt: { gte: yesterday, lt: today } } }),
+      prisma.sessionTurn.count({ where: { who: SpeakerRole.SHOPPER, createdAt: { gte: today } } }),
+      prisma.activityLog.aggregate({
+        where: { kind: LogKind.CHAT, createdAt: { gte: today }, latencyMs: { not: null } },
+        _avg: { latencyMs: true },
+        _count: true,
+      }),
+      prisma.productSku.count(),
+      prisma.productSku.count({ where: { state: SkuState.REVIEW } }),
+    ]);
 
-  const sessionChange = describeChange(sessionsToday, sessionsYesterday);
-  const avgLatency = chatLatencies._avg.latencyMs;
+    const sessionChange = describeChange(sessionsToday, sessionsYesterday);
+    const avgLatency = chatLatencies._avg.latencyMs;
 
-  return [
-    {
-      label: 'sessions today',
-      value: String(sessionsToday),
-      delta: sessionChange.text,
-      deltaColor: sessionChange.color,
-    },
-    {
-      label: 'questions asked today',
-      value: String(questionsToday),
-      delta:
-        sessionsToday > 0
-          ? `${(questionsToday / sessionsToday).toFixed(1)} per session`
-          : 'no sessions yet today',
-      deltaColor: MUTED,
-    },
-    {
-      label: 'avg answer time',
-      value: avgLatency === null ? '—' : `${(avgLatency / 1000).toFixed(1)}s`,
-      delta:
-        avgLatency === null
-          ? 'no answers measured yet'
-          : `across ${chatLatencies._count} answers today`,
-      deltaColor: MUTED,
-    },
-    {
-      label: 'catalogue SKUs',
-      value: String(skuTotal),
-      delta: skuInReview > 0 ? `${skuInReview} awaiting review` : 'none awaiting review',
-      deltaColor: skuInReview > 0 ? WARN : MUTED,
-    },
-  ];
+    return [
+      {
+        label: 'sessions today',
+        value: String(sessionsToday),
+        delta: sessionChange.text,
+        deltaColor: sessionChange.color,
+      },
+      {
+        label: 'questions asked today',
+        value: String(questionsToday),
+        delta:
+          sessionsToday > 0
+            ? `${(questionsToday / sessionsToday).toFixed(1)} per session`
+            : 'no sessions yet today',
+        deltaColor: MUTED,
+      },
+      {
+        label: 'avg answer time',
+        value: avgLatency === null ? '—' : `${(avgLatency / 1000).toFixed(1)}s`,
+        delta:
+          avgLatency === null
+            ? 'no answers measured yet'
+            : `across ${chatLatencies._count} answers today`,
+        deltaColor: MUTED,
+      },
+      {
+        label: 'catalogue SKUs',
+        value: String(skuTotal),
+        delta: skuInReview > 0 ? `${skuInReview} awaiting review` : 'none awaiting review',
+        deltaColor: skuInReview > 0 ? WARN : MUTED,
+      },
+    ];
+  } catch (err) {
+    console.warn('[getStats] Database unreachable:', err);
+    return [
+      { label: 'sessions today', value: '0', delta: 'db unreachable', deltaColor: MUTED },
+      { label: 'questions asked today', value: '0', delta: 'db unreachable', deltaColor: MUTED },
+      { label: 'avg answer time', value: '—', delta: 'db unreachable', deltaColor: MUTED },
+      { label: 'catalogue SKUs', value: '0', delta: 'db unreachable', deltaColor: MUTED },
+    ];
+  }
 }
 
 /**
@@ -116,17 +126,22 @@ export async function getServiceHealth(): Promise<ServiceHealthItem[]> {
   }
   const dbMs = Date.now() - dbStart;
 
-  const [answerCalls, answerErrors, avatarSessions, avatarErrors, storedTurns] = await Promise.all([
-    prisma.activityLog.count({ where: { kind: LogKind.CHAT, createdAt: { gte: since } } }),
-    prisma.activityLog.count({
-      where: { kind: LogKind.CHAT, status: LogStatus.ERROR, createdAt: { gte: since } },
-    }),
-    prisma.shopperSession.count({ where: { startedAt: { gte: since } } }),
-    prisma.activityLog.count({
-      where: { kind: LogKind.SESSION, status: LogStatus.ERROR, createdAt: { gte: since } },
-    }),
-    prisma.sessionTurn.count(),
-  ]);
+  let answerCalls = 0, answerErrors = 0, avatarSessions = 0, avatarErrors = 0, storedTurns = 0;
+  if (dbOk) {
+    try {
+      [answerCalls, answerErrors, avatarSessions, avatarErrors, storedTurns] = await Promise.all([
+        prisma.activityLog.count({ where: { kind: LogKind.CHAT, createdAt: { gte: since } } }),
+        prisma.activityLog.count({
+          where: { kind: LogKind.CHAT, status: LogStatus.ERROR, createdAt: { gte: since } },
+        }),
+        prisma.shopperSession.count({ where: { startedAt: { gte: since } } }),
+        prisma.activityLog.count({
+          where: { kind: LogKind.SESSION, status: LogStatus.ERROR, createdAt: { gte: since } },
+        }),
+        prisma.sessionTurn.count(),
+      ]);
+    } catch {}
+  }
 
   const avatarConfigured = Boolean(process.env.LIVEAVATAR_API_KEY);
 
@@ -183,31 +198,41 @@ const KIND_LABELS: Record<LogKind, string> = {
 
 /** Percentiles from recorded measurements. Unmeasured routes are simply absent. */
 export async function getLatencyRoutes(): Promise<LatencyItem[]> {
-  const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  const buckets = await latencyByKind(since);
+  try {
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const buckets = await latencyByKind(since);
 
-  if (buckets.length === 0) return [];
+    if (buckets.length === 0) return [];
 
-  const ceiling = Math.max(...buckets.map((b) => b.p95), 1);
+    const ceiling = Math.max(...buckets.map((b) => b.p95), 1);
 
-  return buckets
-    .sort((a, b) => b.count - a.count)
-    .map((bucket) => ({
-      name: `${KIND_LABELS[bucket.kind]} · ${bucket.count} samples`,
-      readout: `${bucket.p50} / ${bucket.p95} ms`,
-      pct: `${Math.round((bucket.p95 / ceiling) * 100)}%`,
-      color: bucket.p95 > 3000 ? RED : bucket.p95 > 1500 ? AMBER : GREEN,
-    }));
+    return buckets
+      .sort((a, b) => b.count - a.count)
+      .map((bucket) => ({
+        name: `${KIND_LABELS[bucket.kind]} · ${bucket.count} samples`,
+        readout: `${bucket.p50} / ${bucket.p95} ms`,
+        pct: `${Math.round((bucket.p95 / ceiling) * 100)}%`,
+        color: bucket.p95 > 3000 ? RED : bucket.p95 > 1500 ? AMBER : GREEN,
+      }));
+  } catch (err) {
+    console.warn('[getLatencyRoutes] Database unreachable:', err);
+    return [];
+  }
 }
 
 /** Real counts for the sidebar badges. */
 export async function getNavBadges() {
-  const [conversations, skusInReview, ingestJobs, renders] = await Promise.all([
-    prisma.shopperSession.count(),
-    prisma.productSku.count({ where: { state: SkuState.REVIEW } }),
-    prisma.ingestJob.count({ where: { state: { in: ['QUEUED', 'EXTRACTING'] } } }),
-    prisma.avatarRender.count({ where: { state: { in: ['QUEUED', 'RENDERING'] } } }),
-  ]);
+  try {
+    const [conversations, skusInReview, ingestJobs, renders] = await Promise.all([
+      prisma.shopperSession.count(),
+      prisma.productSku.count({ where: { state: SkuState.REVIEW } }),
+      prisma.ingestJob.count({ where: { state: { in: ['QUEUED', 'EXTRACTING'] } } }),
+      prisma.avatarRender.count({ where: { state: { in: ['QUEUED', 'RENDERING'] } } }),
+    ]);
 
-  return { conversations, skusInReview, ingestJobs, renders };
+    return { conversations, skusInReview, ingestJobs, renders };
+  } catch (err) {
+    console.warn('[getNavBadges] Database unreachable during badge fetch:', err);
+    return { conversations: 0, skusInReview: 0, ingestJobs: 0, renders: 0 };
+  }
 }
