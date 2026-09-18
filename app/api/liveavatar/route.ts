@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { LogKind, LogStatus } from '@prisma/client';
 import { recordActivity } from '@/lib/activity';
+import { warmUpModel } from '@/lib/llm';
 
 const API_BASE = 'https://api.liveavatar.com';
 // Free sandbox avatar — used when LIVEAVATAR_AVATAR_ID is not set
@@ -40,6 +41,11 @@ export async function POST() {
   if (useHeyGenBrain) {
     (body.avatar_persona as Record<string, unknown>).context_id = contextId;
   }
+
+  // Fire-and-forget, in parallel with the token request: the model loads while HeyGen is
+  // still setting up the stream, so the first question does not wait for it. Only useful
+  // when this app is the one answering.
+  if (brain === 'local') void warmUpModel();
 
   const startedAt = Date.now();
   const res = await fetch(`${API_BASE}/v1/sessions/token`, {
