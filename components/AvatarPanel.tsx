@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { fetchSessionToken, stopSessionOnServer, type AvatarBrain } from '@/lib/liveavatar';
 import { MicOff, Loader2 } from 'lucide-react';
-import { fetchSessionToken, stopSessionOnServer } from '@/lib/liveavatar';
 import { useConversationRecorder } from '@/lib/useConversationRecorder';
 import { describeMicFailure, type MicFailure } from '@/lib/microphone';
 import { ScreenSaver } from '@/components/avatar-stage/ScreenSaver';
@@ -153,6 +152,8 @@ export default function AvatarPanel({
     },
     [recorder]
   );
+
+  /**
    * Bring the shopper's microphone up.
    *
    * A missing, blocked or busy microphone is a normal condition on a kiosk, not a
@@ -267,8 +268,7 @@ export default function AvatarPanel({
     } finally {
       startingRef.current = false;
     }
-  }, [onStart, onUserTranscription, onAvatarTranscription, onSessionReady, recorder, answerQuestion]);
-  }, [onUserTranscription, onAvatarTranscription, onSessionReady, recorder, startVoiceChat]);
+  }, [onUserTranscription, onAvatarTranscription, onSessionReady, recorder, answerQuestion, startVoiceChat]);
 
   const handleEnd = useCallback(async () => {
     if (keepAliveRef.current) clearInterval(keepAliveRef.current);
