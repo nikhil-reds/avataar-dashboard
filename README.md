@@ -53,7 +53,7 @@ are read, and only the top handful reach the model — the whole table is never 
 
 ```bash
 docker compose up -d db ollama
-docker exec avataar-dashboard-ollama-1 ollama pull qwen3:1.7b
+docker exec avataar-dashboard-ollama-1 ollama pull qwen3:0.6b
 npx prisma migrate dev
 npm run dev
 ```
@@ -75,10 +75,27 @@ key. Configured by `OLLAMA_BASE_URL` and `OLLAMA_MODEL` in `.env`.
 Model choice is a latency decision. Measured on this machine's 4GB T1200, answering
 "Where is your Bangalore office?" from the knowledge base:
 
-| Model | GPU offload | Time per answer |
-| --- | --- | --- |
-| `qwen3:1.7b` | 29/29 layers, 100% GPU | **~2.4s** |
-| `qwen3:4b` | 26/37 layers, 73% GPU | ~57s |
+| Model | GPU offload | Decode | Time per answer |
+| --- | --- | --- | --- |
+| `qwen3:0.6b` | 100% GPU | 22.6 tok/s | **~1.43s** (in use) |
+| `qwen3:1.7b` | 29/29 layers, 100% GPU | 12.2 tok/s | ~2.25s |
+| `qwen3:4b` | 26/37 layers, 73% GPU | 5.5 tok/s | ~57s |
+
+`qwen3:0.6b` is the default, chosen for latency. The trade is wording quality: it will
+sometimes answer a question that needs a small inference ("Are you open on Sunday?" against
+a Mon–Fri entry) by asking a question back instead of answering. `qwen3:1.7b` is steadier
+on those and costs about 0.8s more — one edit to `OLLAMA_MODEL` plus a dev restart.
+
+Two guards in `lib/llm.ts` exist specifically because of 0.6b, and should stay if the model
+is changed again:
+
+- `stripEchoedQuestion()` — 0.6b opens replies by repeating the question ("Do you have an
+  office in Mumbai? I don't have that information."), which the avatar would speak aloud.
+  When the reply is *only* the repeated question it returns empty, and the route speaks
+  `FALLBACK_SPOKEN_REPLY` rather than letting the avatar parrot the shopper.
+- The few-shot example in `lib/knowledgePrompt.ts` must demonstrate **answering**, not
+  refusing. An earlier version used a refusal as the example and 0.6b copied it wholesale,
+  claiming ignorance of facts that were sitting in the retrieved knowledge.
 
 The 4B model does not fit in 4GB alongside the KV cache, so a third of it runs on the CPU.
 Since answers are grounded in retrieved knowledge, the smaller model is reciting supplied
@@ -93,6 +110,38 @@ whatever text it is handed, so deliberation must never reach it. Two defences, b
 15s for a one-line greeting. The reply also arrives with a *dangling* `</think>` and no
 opening tag, because the chat template supplies the opener; a stripper that only matches
 balanced pairs would let the entire monologue through to the avatar's mouth.
+
+### Latency
+
+Measured end to end through `/api/chat`, warm: **~1.8s**, and it breaks down as
+
+| Phase | Time |
+| --- | --- |
+| knowledge retrieval (Postgres) | ~5ms |
+| prefill (~235 prompt tokens) | ~90ms |
+| **decode (~18 output tokens)** | **~1700ms** |
+
+Decode is ~98% of it and its cost is linear in tokens generated, so **answer length is the
+latency dial**. Tightening the prompt from "2-4 sentences" to "one sentence, max 40 words"
+took a measured 3545ms to 2148ms on its own; `num_predict` is capped at 80 to stop a
+runaway answer becoming a runaway wait.
+
+Things that were measured and turned out *not* to be the problem, so they are not worth
+revisiting:
+
+- **Docker vs native Ollama** — 22.6 vs 22.5 tok/s on the same model. WSL2 GPU passthrough
+  costs nothing here; running in Docker is free.
+- **`localhost` vs `127.0.0.1` from Node** — 2-8ms either way. No IPv6 resolution penalty.
+- **Flash attention** — neutral on this Turing card. Left on; it frees KV-cache VRAM.
+
+What remains is the GPU. 12 tok/s for a 1.7B model fully resident is simply what a 4GB
+T1200 does; a larger card is the only way past it without shrinking the model.
+
+Two settings exist purely to avoid *cold* latency, which is far worse than the steady
+state: `OLLAMA_KEEP_ALIVE=-1` keeps the model resident indefinitely (the default drops it
+after 5 minutes idle, so the first question after any pause paid a multi-second reload),
+and `warmUpModel()` is fired from the session-token route so the model loads while HeyGen
+is still bringing up the video stream.
 
 ### Who answers
 
