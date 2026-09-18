@@ -72,7 +72,7 @@ export const EntryForm: React.FC<EntryFormProps> = ({
         />
       </label>
 
-      <div className="flex items-center gap-3 border-t border-zinc-100 dark:border-zinc-800 pt-4">
+      <div className="flex items-center gap-3 flex-wrap border-t border-zinc-100 dark:border-zinc-800 pt-4">
         <button
           onClick={onSave}
           disabled={saving}

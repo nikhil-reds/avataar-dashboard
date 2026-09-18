@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Trash2, Loader2, AlertCircle } from 'lucide-react';
+import { TAB_BY_ID } from '@/data/navigation';
 
 interface ForgetSessionButtonProps {
   sessionId: string;
@@ -30,7 +31,7 @@ export const ForgetSessionButton: React.FC<ForgetSessionButtonProps> = ({ sessio
     try {
       const res = await fetch(`/api/sessions/${sessionId}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('delete failed');
-      router.replace('/memory');
+      router.replace(TAB_BY_ID.memory.href);
       router.refresh();
     } catch {
       setError('Could not delete');

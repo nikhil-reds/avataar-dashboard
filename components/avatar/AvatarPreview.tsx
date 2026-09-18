@@ -10,7 +10,7 @@ interface AvatarPreviewProps {
 export const AvatarPreview: React.FC<AvatarPreviewProps> = ({ voiceLabel }) => {
   return (
     <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden flex flex-col shadow-sm">
-      <div className="h-96 bg-[repeating-linear-gradient(135deg,oklch(0.94_0.006_250)_0_9px,oklch(0.965_0.004_250)_9px_18px)] dark:bg-[repeating-linear-gradient(135deg,oklch(0.18_0.006_250)_0_9px,oklch(0.22_0.004_250)_9px_18px)] flex items-end justify-center p-4 relative group">
+      <div className="h-72 sm:h-96 bg-[repeating-linear-gradient(135deg,oklch(0.94_0.006_250)_0_9px,oklch(0.965_0.004_250)_9px_18px)] dark:bg-[repeating-linear-gradient(135deg,oklch(0.18_0.006_250)_0_9px,oklch(0.22_0.004_250)_9px_18px)] flex items-end justify-center p-4 relative group">
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
           <UserCheck className="w-28 h-28 text-indigo-600 dark:text-indigo-400" />
         </div>

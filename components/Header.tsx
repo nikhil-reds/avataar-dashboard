@@ -1,15 +1,18 @@
 'use client';
 
+import Image from 'next/image';
+import type { AvatarPhase } from './AvatarPanel';
 
 interface HeaderProps {
-  status: 'idle' | 'live' | 'ended';
+  status: AvatarPhase;
   timer: string;
 }
 
 const STATUS_CONFIG = {
-  idle:  { label: 'Ready',  dot: 'bg-text-muted',       pill: 'text-text-muted border-border-subtle bg-surface-glass' },
-  live:  { label: 'Live',   dot: 'bg-green animate-pulse-dot', pill: 'text-green border-green/25 bg-green/8' },
-  ended: { label: 'Ended',  dot: 'bg-[#ef4444]',         pill: 'text-[#ef4444] border-[#ef4444]/20 bg-[#ef4444]/8' },
+  idle:       { label: 'Ready',      dot: 'bg-text-muted',              pill: 'text-text-muted border-border-subtle bg-surface-glass' },
+  connecting: { label: 'Connecting', dot: 'bg-accent animate-pulse-dot', pill: 'text-accent border-accent/25 bg-accent/8' },
+  live:       { label: 'Live',       dot: 'bg-green animate-pulse-dot', pill: 'text-green border-green/25 bg-green/8' },
+  ended:      { label: 'Ended',      dot: 'bg-[#b91c1c]',               pill: 'text-[#b91c1c] border-[#b91c1c]/20 bg-[#b91c1c]/8' },
 } as const;
 
 export default function Header({ status, timer }: HeaderProps) {
@@ -18,15 +21,20 @@ export default function Header({ status, timer }: HeaderProps) {
   return (
     <header className="h-14 flex items-center justify-between px-5 bg-bg-secondary/80 backdrop-blur-xl border-b border-border-subtle shrink-0 z-20">
 
-      {/* Brand */}
+      {/* Brand — same mark as the screen saver, so the header does not contradict
+          the logo the shopper is looking at. */}
       <div className="flex items-center gap-3">
-        <div className="relative shrink-0">
-          <div className="w-8 h-8 rounded-xl bg-linear-to-br from-accent to-[#818cf8] flex items-center justify-center text-[11px] font-bold text-white shadow-[0_0_18px_rgba(99,102,241,0.35)]">
-            RU
-          </div>
-        </div>
+        <Image
+          src="/TR_mark.png"
+          alt="Trifast Global"
+          width={256}
+          height={256}
+          priority
+          sizes="32px"
+          className="w-8 h-8 shrink-0 rounded-lg object-contain"
+        />
         <div className="leading-none">
-          <div className="text-[14px] font-semibold text-text-primary tracking-tight">Rubenius</div>
+          <div className="text-[14px] font-semibold text-text-primary tracking-tight">Trifast Global</div>
           <div className="hidden sm:block text-[11px] text-text-muted mt-0.5">AI Video Agent</div>
         </div>
       </div>

@@ -83,14 +83,14 @@ export const ConversationFilters: React.FC<ConversationFiltersProps> = ({
   return (
     <div className="flex flex-col gap-3">
       <div className="flex gap-3 flex-wrap items-center">
-        <div className="flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-full border border-zinc-200/80 dark:border-zinc-700">
+        <div className="flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-full border border-zinc-200/80 dark:border-zinc-700 max-w-full overflow-x-auto">
           {STATUS_FILTERS.map((item) => {
             const isActive = status === item;
             return (
               <button
                 key={item}
                 onClick={() => setParam('status', item === 'all' ? '' : item)}
-                className={`text-[12.5px] font-semibold px-3 py-1.5 rounded-full transition-all cursor-pointer ${
+                className={`shrink-0 text-[12.5px] font-semibold px-3 py-1.5 rounded-full transition-all cursor-pointer ${
                   isActive
                     ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-xs'
                     : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
@@ -102,7 +102,7 @@ export const ConversationFilters: React.FC<ConversationFiltersProps> = ({
           })}
         </div>
 
-        <div className="relative flex-1 min-w-[240px]">
+        <div className="relative flex-1 w-full sm:w-auto sm:min-w-[240px]">
           {isPending ? (
             <Loader2 className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 animate-spin" />
           ) : (
@@ -119,23 +119,23 @@ export const ConversationFilters: React.FC<ConversationFiltersProps> = ({
       </div>
 
       <div className="flex gap-3 flex-wrap items-center">
-        <label className="flex items-center gap-2 text-[11.5px] text-zinc-500">
+        <label className="flex items-center gap-2 text-[11.5px] text-zinc-500 flex-1 sm:flex-initial min-w-0">
           <span className="font-mono uppercase tracking-wider text-[10px] text-zinc-400">from</span>
           <input
             type="date"
             value={from}
             onChange={(e) => setParam('from', e.target.value)}
-            className={inputClass}
+            className={inputClass + ' w-full sm:w-auto min-w-0'}
           />
         </label>
 
-        <label className="flex items-center gap-2 text-[11.5px] text-zinc-500">
+        <label className="flex items-center gap-2 text-[11.5px] text-zinc-500 flex-1 sm:flex-initial min-w-0">
           <span className="font-mono uppercase tracking-wider text-[10px] text-zinc-400">to</span>
           <input
             type="date"
             value={to}
             onChange={(e) => setParam('to', e.target.value)}
-            className={inputClass}
+            className={inputClass + ' w-full sm:w-auto min-w-0'}
           />
         </label>
 

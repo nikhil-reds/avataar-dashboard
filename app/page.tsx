@@ -1,52 +1,29 @@
-'use client';
+import type { Metadata } from "next";
 
 import AvatarPanel from "@/components/AvatarPanel";
-import Header from "@/components/Header";
-import { useCallback, useRef, useState } from "react";
+import { OG_BASE } from "@/lib/siteMetadata";
 
-
+// A server component so it can export metadata — the interactive part lives in
+// AvatarPanel, which is the only piece that needs to run on the client.
+export const metadata: Metadata = {
+  title: "AI Video Agent",
+  description:
+    "Start a live conversation with the Trifast avatar. Ask about any fastener — specifications, materials, stock and lead times.",
+  alternates: { canonical: "/" },
+  // Spread rather than replaced: a bare object here would drop the root's OG image.
+  openGraph: {
+    ...OG_BASE,
+    url: "/",
+    title: "Trifast Global · AI Video Agent",
+    description:
+      "Start a live conversation with the Trifast avatar. Ask about any fastener — specifications, materials, stock and lead times.",
+  },
+};
 
 export default function AIVideoAgent() {
-  const [sessionStatus, setSessionStatus] = useState<'idle' | 'live' | 'ended'>('idle');
-  const [seconds, setSeconds]             = useState(0);
-
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const speakRef = useRef<((text: string) => void) | null>(null);
-
-  const formatTime = (s: number) => {
-    const m = Math.floor(s / 60);
-    const sec = s % 60;
-    return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
-  };
-
-  const handleSessionStart = useCallback(() => {
-    setSessionStatus('live');
-    setSeconds(0);
-    timerRef.current = setInterval(() => setSeconds((s) => s + 1), 1000);
-  }, []);
-
-  const handleSessionEnd = useCallback(() => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    speakRef.current = null;
-    setSessionStatus('ended');
-  }, []);
-
-  const handleSessionReady = useCallback((speak: (text: string) => void) => {
-    speakRef.current = speak;
-  }, []);
-
   return (
-    <div className="flex flex-col h-dvh w-full overflow-hidden bg-bg-primary text-text-primary">
-      <Header status={sessionStatus} timer={formatTime(seconds)} />
-
-      <main className="flex-1 flex items-center justify-center overflow-hidden min-h-0">
-        <AvatarPanel
-          isActive={sessionStatus === 'live'}
-          onStart={handleSessionStart}
-          onEnd={handleSessionEnd}
-          onSessionReady={handleSessionReady}
-        />
-      </main>
+    <div className="h-dvh w-full overflow-hidden bg-bg-primary text-text-primary">
+      <AvatarPanel />
     </div>
   );
 }

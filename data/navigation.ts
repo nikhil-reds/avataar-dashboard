@@ -1,3 +1,5 @@
+import type { Metadata } from 'next';
+
 import { NavTab, TabId } from '../types';
 
 // Navigation configuration for the admin console. This is app structure, not
@@ -5,7 +7,7 @@ import { NavTab, TabId } from '../types';
 export const TAB_DEFINITIONS: NavTab[] = [
   {
     id: 'dash',
-    href: '/dashboard',
+    href: '/admin/dashboard',
     label: 'Dashboard',
     badge: '',
     crumb: 'overview',
@@ -16,7 +18,7 @@ export const TAB_DEFINITIONS: NavTab[] = [
   },
   {
     id: 'logs',
-    href: '/activelog',
+    href: '/admin/activelog',
     label: 'Activity logs',
     badge: '',
     crumb: 'observability',
@@ -27,7 +29,7 @@ export const TAB_DEFINITIONS: NavTab[] = [
   },
   {
     id: 'conversations',
-    href: '/conversations',
+    href: '/admin/conversations',
     label: 'Conversations',
     badge: '',
     crumb: 'observability',
@@ -38,7 +40,7 @@ export const TAB_DEFINITIONS: NavTab[] = [
   },
   {
     id: 'catalogue',
-    href: '/catalogue',
+    href: '/admin/catalogue',
     label: 'Catalogue',
     badge: '',
     crumb: 'content',
@@ -49,7 +51,7 @@ export const TAB_DEFINITIONS: NavTab[] = [
   },
   {
     id: 'ingest',
-    href: '/ingest',
+    href: '/admin/ingest',
     label: 'PDF ingest',
     badge: '',
     crumb: 'content',
@@ -60,7 +62,7 @@ export const TAB_DEFINITIONS: NavTab[] = [
   },
   {
     id: 'manual',
-    href: '/manual',
+    href: '/admin/manual',
     label: 'Manual entry',
     badge: '',
     crumb: 'content',
@@ -82,7 +84,7 @@ export const TAB_DEFINITIONS: NavTab[] = [
   },
   {
     id: 'avatar',
-    href: '/avatar',
+    href: '/admin/avatar',
     label: 'Avatar studio',
     badge: '',
     crumb: 'avatar',
@@ -93,7 +95,7 @@ export const TAB_DEFINITIONS: NavTab[] = [
   },
   {
     id: 'memory',
-    href: '/memory',
+    href: '/admin/memory',
     label: 'Memory',
     badge: '',
     crumb: 'avatar',
@@ -107,3 +109,19 @@ export const TAB_DEFINITIONS: NavTab[] = [
 export const TAB_BY_ID = Object.fromEntries(
   TAB_DEFINITIONS.map((tab) => [tab.id, tab])
 ) as Record<TabId, NavTab>;
+
+/**
+ * Page metadata for an admin tab, taken from the same definition that renders its
+ * sidebar entry and header — so a tab cannot end up with a browser title that
+ * contradicts the heading on the page.
+ *
+ * `label` rather than `title` because the browser tab is narrow and the sidebar
+ * wording is what an operator is looking for when hunting through open tabs.
+ */
+export function tabMetadata(id: TabId): Metadata {
+  const tab = TAB_BY_ID[id];
+  return {
+    title: tab.label,
+    description: tab.subtitle,
+  };
+}

@@ -70,7 +70,7 @@ body {
 }
 
 * {
-  box-sizing: border-border-box;
+  box-sizing: border-box;
 }
 
 /* Custom Scrollbars */
@@ -90,4 +90,93 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--scrollbar-thumb-hover);
+}
+
+/* ---------------------------------------------------------------------------
+   Avatar stage — the shopper-facing `/` route.
+
+   These tokens back the `bg-bg-*`, `text-text-*`, `accent` and `border-subtle`
+   utilities used by AvatarPanel, ScreenSaver and Header. The palette is the
+   Trifast one sampled from public/TR_logo.png: `--color-bg-secondary` is the
+   logo's own background, so the image sits on the screen saver with no visible
+   tile edge.
+--------------------------------------------------------------------------- */
+@theme {
+  --color-bg-primary: #f2eee7;
+  --color-bg-secondary: #fbf9f6;
+  --color-bg-tertiary: #e8e2d8;
+  --color-bg-card: #ffffff;
+
+  --color-text-primary: #0b1f4f;
+  --color-text-muted: #78809a;
+
+  --color-accent: #0b2265;
+  --color-border-subtle: #e3dcd1;
+  --color-green: #12a150;
+  --color-surface-glass: rgba(255, 255, 255, 0.72);
+
+  --animate-spin-slow: spin-slow 40s linear infinite;
+  --animate-bar-bounce: bar-bounce 1s ease-in-out infinite;
+  --animate-pulse-dot: pulse-dot 1.8s ease-in-out infinite;
+  --animate-drift: drift 22s ease-in-out infinite;
+  --animate-breathe: breathe 7s ease-in-out infinite;
+}
+
+@keyframes spin-slow {
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+@keyframes bar-bounce {
+  0%, 100% { transform: scaleY(0.4); }
+  50%      { transform: scaleY(1); }
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.35; }
+}
+
+/* Ambient wash behind the screen saver. Slow and low-contrast on purpose: an
+   unattended kiosk should never look frozen, but it should not draw the eye
+   away from the logo either. */
+@keyframes drift {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  33%      { transform: translate3d(6%, -4%, 0) scale(1.08); }
+  66%      { transform: translate3d(-5%, 5%, 0) scale(0.96); }
+}
+
+@keyframes breathe {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.035); }
+}
+
+@keyframes shimmer {
+  from { background-position: 180% 0; }
+  to   { background-position: -80% 0; }
+}
+
+/* Placeholder blocks shown while the avatar stream is being negotiated. */
+.skeleton-block {
+  background-color: rgba(11, 34, 101, 0.06);
+  background-image: linear-gradient(
+    100deg,
+    rgba(11, 34, 101, 0.04) 20%,
+    rgba(11, 34, 101, 0.13) 45%,
+    rgba(11, 34, 101, 0.04) 70%
+  );
+  background-size: 220% 100%;
+  animation: shimmer 1.6s linear infinite;
+}
+
+/* The idle screen can be on display for hours; honour a reduced-motion request
+   rather than looping animation at someone indefinitely. */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-block,
+  .animate-drift,
+  .animate-breathe,
+  .animate-spin-slow,
+  .animate-pulse-dot,
+  .animate-bar-bounce {
+    animation: none !important;
+  }
 }

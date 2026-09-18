@@ -3,8 +3,9 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { NavTab } from '../../types';
-import { Clock, Sparkles } from 'lucide-react';
+import { Clock, Menu, Sparkles } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
+import { useNavDrawer } from './AdminShell';
 
 interface HeaderProps {
   activeTabDef: NavTab;
@@ -22,6 +23,10 @@ export const Header: React.FC<HeaderProps> = ({
   onPrimaryClick,
   ctaHref,
 }) => {
+  // Null outside the admin shell (e.g. if Header is reused elsewhere), in which case
+  // no hamburger is rendered.
+  const drawer = useNavDrawer();
+
   // Empty until mounted: rendering a fixed placeholder time would show a stale clock
   // for a frame, and would not match the server output.
   const [timeStr, setTimeStr] = useState('');
@@ -41,26 +46,32 @@ export const Header: React.FC<HeaderProps> = ({
   }, []);
 
   return (
-    <header className="flex items-end justify-between gap-6 flex-wrap px-8 py-5 border-b border-zinc-200/80 dark:border-zinc-800 bg-white/90 dark:bg-zinc-900/90 sticky top-0 z-10 backdrop-blur-md">
-      <div className="flex flex-col gap-1 min-w-0">
-        <div className="font-mono text-[10.5px] tracking-widest uppercase text-zinc-400 font-semibold flex items-center gap-1.5">
-          <span>apps</span>
-          <span>/</span>
-          <span className="text-indigo-600 dark:text-indigo-400 font-bold">
-            {activeTabDef.crumb}
-          </span>
+    <header className="flex items-end justify-between gap-3 sm:gap-6 flex-wrap px-4 sm:px-6 lg:px-8 py-4 lg:py-5 border-b border-zinc-200/80 dark:border-zinc-800 bg-white/90 dark:bg-zinc-900/90 sticky top-0 z-10 backdrop-blur-md">
+      <div className="flex items-center gap-3 min-w-0">
+        {drawer && (
+          <button
+            type="button"
+            onClick={drawer.open}
+            aria-label="Open navigation"
+            className="lg:hidden shrink-0 -ml-1 w-11 h-11 flex items-center justify-center rounded-xl border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 active:scale-[0.97] transition-all"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+        )}
+
+        <div className="flex flex-col gap-1 min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-zinc-900 dark:text-white truncate">
+            {activeTabDef.title}
+          </h1>
+          <p className="hidden sm:block text-[13.5px] text-zinc-500 dark:text-zinc-400 max-w-2xl">
+            {activeTabDef.subtitle}
+          </p>
         </div>
-        <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-white">
-          {activeTabDef.title}
-        </h1>
-        <p className="text-[13.5px] text-zinc-500 dark:text-zinc-400 max-w-2xl">
-          {activeTabDef.subtitle}
-        </p>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 sm:gap-3">
         {timeStr && (
-          <div className="font-mono text-[11px] text-zinc-600 dark:text-zinc-300 px-3 py-2 border border-zinc-200 dark:border-zinc-700 rounded-lg bg-zinc-50 dark:bg-zinc-800 flex items-center gap-2">
+          <div className="hidden md:flex font-mono text-[11px] text-zinc-600 dark:text-zinc-300 px-3 py-2 border border-zinc-200 dark:border-zinc-700 rounded-lg bg-zinc-50 dark:bg-zinc-800 items-center gap-2">
             <Clock className="w-3.5 h-3.5 text-zinc-400" />
             <span>{timeStr}</span>
           </div>
