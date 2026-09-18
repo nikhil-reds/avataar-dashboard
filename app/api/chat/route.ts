@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { LogKind, LogStatus } from '@prisma/client';
 import { recordActivity } from '@/lib/activity';
 import { getRelevantKnowledge } from '@/lib/knowledgeRetrieval';
-import { buildSystemPrompt, describeSources } from '@/lib/knowledgePrompt';
+import { FALLBACK_SPOKEN_REPLY, buildSystemPrompt, describeSources } from '@/lib/knowledgePrompt';
 import { LlmError, generateAnswer, llmModel, type ChatTurn } from '@/lib/llm';
 
 /**
@@ -81,7 +81,7 @@ export async function POST(request: Request) {
     );
 
     const latencyMs = Date.now() - startedAt;
-    const response = text || 'No response generated.';
+    const response = text || FALLBACK_SPOKEN_REPLY;
 
     await recordActivity({
       event: message.slice(0, 120),
