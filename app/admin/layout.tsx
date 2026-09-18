@@ -6,6 +6,8 @@ import { getNavBadges } from '@/lib/dashboard';
 import { OG_BASE, OG_IMAGE } from '@/lib/siteMetadata';
 import type { TabId } from '@/types';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * Admin defaults. The template replaces the root one for everything under
  * `/admin`, so an operator with several tabs open can tell the console apart from
