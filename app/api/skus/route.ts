@@ -3,6 +3,7 @@ import { LogKind, LogStatus, Prisma, SkuState } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { recordActivity } from '@/lib/activity';
 import { parseSkuInput } from '@/lib/validation';
+import { KEYS, del as cacheDel } from '@/lib/redis';
 
 export async function POST(request: Request) {
   let body: unknown;
@@ -43,6 +44,7 @@ export async function POST(request: Request) {
       model: 'manual',
       detail: created.name,
     });
+    await cacheDel(KEYS.catalogueIndex());
 
     return NextResponse.json(created, { status: 201 });
   } catch (err) {

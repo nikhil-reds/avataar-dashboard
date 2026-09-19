@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { LogKind, LogStatus } from '@prisma/client';
 import { recordActivity } from '@/lib/activity';
+import { KEYS, del as cacheDel } from '@/lib/redis';
 import { createIndexBuild, listIndexBuilds, MissingSourcesError } from '@/lib/ingest';
 import { parseIndexBuild } from '@/lib/validation';
 
@@ -23,6 +24,7 @@ export async function POST(request: Request) {
 
   try {
     const index = await createIndexBuild(sourceIds, label);
+    await cacheDel(KEYS.pageIndexSummary());
 
     const sections = index.documents.reduce((total, doc) => total + doc.nodes.length, 0);
 
