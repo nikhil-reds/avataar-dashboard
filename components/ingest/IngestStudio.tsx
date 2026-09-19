@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Loader2, Sparkles, AlertCircle } from 'lucide-react';
 import { SourceStager } from './SourceStager';
 import { PageIndexPreview } from './PageIndexPreview';
+import { ConfirmSourceDeleteModal } from './ConfirmSourceDeleteModal';
 import type {
   IngestSourceRow,
   PageIndexDoc,
@@ -41,6 +42,9 @@ export const IngestStudio: React.FC<IngestStudioProps> = ({
   const [building, setBuilding] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<IngestSourceRow | null>(null);
+  const [deleteError, setDeleteError] = useState('');
+  const [deleting, setDeleting] = useState(false);
 
   const nextTempId = useRef(1);
 
@@ -142,31 +146,39 @@ export const IngestStudio: React.FC<IngestStudioProps> = ({
     }
   };
 
-  const handleRemove = async (id: string) => {
+  const requestRemove = (id: string) => {
     const source = sources.find((row) => row.id === id);
-    // Deleting now destroys a stored file, so it is confirmed rather than instant.
-    if (source && !window.confirm(`Delete "${source.title}"? This cannot be undone.`)) {
-      return;
-    }
+    if (!source) return;
 
-    setBusy(true);
+    setDeleteTarget(source);
+    setDeleteError('');
     setError('');
+  };
+
+  const confirmRemove = async () => {
+    if (!deleteTarget || deleting) return;
+
+    setDeleting(true);
+    setDeleteError('');
 
     try {
-      const res = await fetch(`/api/ingest/sources/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/ingest/sources/${deleteTarget.id}`, {
+        method: 'DELETE',
+      });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data.error ?? 'Could not delete this source');
+        setDeleteError(data.error ?? 'Could not delete this source');
         return;
       }
 
-      setSources((prev) => prev.filter((row) => row.id !== id));
+      setSources((prev) => prev.filter((row) => row.id !== deleteTarget.id));
       setRejected([]);
+      setDeleteTarget(null);
       router.refresh();
     } catch {
-      setError('Could not reach the server');
+      setDeleteError('Could not reach the server');
     } finally {
-      setBusy(false);
+      setDeleting(false);
     }
   };
 
@@ -235,13 +247,28 @@ export const IngestStudio: React.FC<IngestStudioProps> = ({
           pending={pending}
           onAddFiles={handleAddFiles}
           onAddText={handleAddText}
-          onRemove={handleRemove}
+          onRemove={requestRemove}
           rejected={rejected}
-          busy={busy}
+          busy={busy || deleting}
         />
 
         <PageIndexPreview index={index} stale={stale} />
       </div>
+
+      {deleteTarget && (
+        <ConfirmSourceDeleteModal
+          source={deleteTarget}
+          busy={deleting}
+          error={deleteError}
+          onCancel={() => {
+            if (!deleting) {
+              setDeleteTarget(null);
+              setDeleteError('');
+            }
+          }}
+          onConfirm={confirmRemove}
+        />
+      )}
     </div>
   );
 };
