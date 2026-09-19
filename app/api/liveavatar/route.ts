@@ -1,33 +1,52 @@
 import { NextResponse } from 'next/server';
 import { LogKind, LogStatus } from '@prisma/client';
 import { recordActivity } from '@/lib/activity';
+import {
+  formatAvatarConfigLog,
+  readEnv,
+  resolveAvatarConfig,
+  summarizeAvatarConfig,
+} from '@/lib/liveavatarConfig';
 
 const API_BASE = 'https://api.liveavatar.com';
-// Free sandbox avatar — used when LIVEAVATAR_AVATAR_ID is not set
-const SANDBOX_AVATAR_ID = 'dd73ea75-1218-4ef3-92ce-606d5f7fbc0a';
 
-export async function POST() {
+export async function POST(request: Request) {
   const apiKey = process.env.LIVEAVATAR_API_KEY;
   if (!apiKey) {
     return NextResponse.json({ error: 'LIVEAVATAR_API_KEY not configured' }, { status: 500 });
   }
 
-  const avatarId = process.env.LIVEAVATAR_AVATAR_ID;
-  const contextId = process.env.LIVEAVATAR_CONTEXT_ID;
-  const isSandbox = !contextId;
+  let requestedMode: 'FULL' | 'LITE' = 'FULL';
+  try {
+    const body = await request.json();
+    if (body?.mode === 'LITE') requestedMode = 'LITE';
+  } catch {
+    // Existing callers send no body; keep that path as FULL mode.
+  }
+
+  const config = resolveAvatarConfig();
+  const { source, avatarId, contextId, isSandbox } = config;
 
   const body: Record<string, unknown> = {
-    mode: 'FULL',
-    avatar_id: avatarId || SANDBOX_AVATAR_ID,
+    mode: requestedMode,
+    avatar_id: avatarId,
     avatar_persona: { language: 'en' },
   };
 
+  if (requestedMode === 'LITE' && readEnv('LIVEAVATAR_AUDIO_API_KEY')) {
+    body.audio = { api_key: readEnv('LIVEAVATAR_AUDIO_API_KEY') };
+  }
+
   if (isSandbox) {
     body.is_sandbox = true;
-    body.avatar_id = SANDBOX_AVATAR_ID;
-  } else {
+  }
+
+  if (contextId) {
     (body.avatar_persona as Record<string, unknown>).context_id = contextId;
   }
+
+  const configSummary = summarizeAvatarConfig(config, requestedMode);
+  console.info(formatAvatarConfigLog(configSummary));
 
   const startedAt = Date.now();
   const res = await fetch(`${API_BASE}/v1/sessions/token`, {
@@ -59,10 +78,16 @@ export async function POST() {
     kind: LogKind.SESSION,
     model: 'liveavatar',
     latencyMs: Date.now() - startedAt,
-    detail: isSandbox ? 'sandbox avatar' : 'context ' + contextId,
+    detail: `${requestedMode.toLowerCase()} · avatar source ${source} · sandbox ${isSandbox} · context ${Boolean(
+      contextId
+    )}`,
   });
 
-  return NextResponse.json({ session_token: data.session_token });
+  return NextResponse.json({
+    session_token: data.session_token,
+    mode: requestedMode,
+    config: configSummary,
+  });
 }
 
 export async function DELETE(request: Request) {
