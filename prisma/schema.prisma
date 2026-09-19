@@ -58,18 +58,18 @@ enum SkuState {
 // Written by lib/activity.ts from the real request paths. Every field is a measurement,
 // not a label: latency is milliseconds actually elapsed, tokens come from the provider.
 model ActivityLog {
-  id         String     @id @default(uuid())
-  event      String
-  kind       LogKind
-  status     LogStatus  @default(OK)
-  sessionId  String?
-  model      String?
-  latencyMs  Int?
-  cost       Decimal?   @db.Decimal(10, 4)
-  tokensIn   Int?
-  tokensOut  Int?
-  detail     String?
-  createdAt  DateTime   @default(now())
+  id        String    @id @default(uuid())
+  event     String
+  kind      LogKind
+  status    LogStatus @default(OK)
+  sessionId String?
+  model     String?
+  latencyMs Int?
+  cost      Decimal?  @db.Decimal(10, 4)
+  tokensIn  Int?
+  tokensOut Int?
+  detail    String?
+  createdAt DateTime  @default(now())
 
   @@index([createdAt(sort: Desc)])
   @@index([kind, createdAt(sort: Desc)])
@@ -91,16 +91,20 @@ enum LogStatus {
 
 // PDF Ingest Extraction Jobs
 model IngestJob {
-  id             String         @id @default(uuid())
-  file           String
-  state          IngestJobState @default(QUEUED)
-  pct            Int            @default(0)
-  note           String?
-  page           Int            @default(1)
-  totalPages     Int?
-  extractedRows  ExtractedRow[]
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  id            String         @id @default(uuid())
+  file          String
+  state         IngestJobState @default(QUEUED)
+  pct           Int            @default(0)
+  note          String?
+  page          Int            @default(1)
+  totalPages    Int?
+  extractedRows ExtractedRow[]
+  // Set once a job is raised for an uploaded source. Nullable because the queue
+  // predates the upload path and no worker writes jobs yet.
+  sourceId      String?        @unique
+  source        IngestSource?  @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 
   @@map("ingest_jobs")
 }
@@ -119,7 +123,7 @@ model ExtractedRow {
   job       IngestJob     @relation(fields: [jobId], references: [id], onDelete: Cascade)
   name      String
   conf      String
-  fields    Json          // Key-value attributes (sku, price, weight, making)
+  fields    Json // Key-value attributes (sku, price, weight, making)
   verdict   ReviewVerdict @default(PENDING)
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
@@ -135,14 +139,14 @@ enum ReviewVerdict {
 
 // HeyGen Avatar Video Renders
 model AvatarRender {
-  id        String       @id @default(uuid())
-  script    String       @db.Text
-  voice     String
+  id          String      @id @default(uuid())
+  script      String      @db.Text
+  voice       String
   durationSec Int?
-  state     RenderState  @default(QUEUED)
-  videoUrl  String?
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
+  state       RenderState @default(QUEUED)
+  videoUrl    String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
   @@map("avatar_renders")
 }
@@ -227,4 +231,112 @@ model RetainedFact {
 
   @@index([sessionId])
   @@map("retained_facts")
+}
+
+// Ingest Sources (Uploaded Documents & Pasted Text)
+// One row per thing an operator handed the console. File bytes live on disk under
+// storage/ingest — see lib/storage.ts — because a 25 MB column is materialised in
+// full by every read and lands in every database dump.
+model IngestSource {
+  id          String              @id @default(uuid())
+  kind        IngestSourceKind
+  /// File name for uploads, operator-supplied title for pasted text.
+  title       String
+  fileName    String?
+  mime        String
+  ext         String              @default("")
+  sizeBytes   Int
+  /// sha256 of the stored bytes, so a re-upload of the same document is recognisable.
+  checksum    String
+  /// Key understood by lib/storage.ts. Null for pasted text, which has no object.
+  storagePath String?
+  /// Pasted body, or a text-like upload decoded as UTF-8. Null until extraction.
+  text        String?             @db.Text
+  status      IngestSourceStatus  @default(STAGED)
+  note        String?
+  documents   PageIndexDocument[]
+  job         IngestJob?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@index([createdAt(sort: Desc)])
+  @@index([checksum])
+  @@map("ingest_sources")
+}
+
+enum IngestSourceKind {
+  FILE
+  TEXT
+}
+
+// PENDING_EXTRACTION is not a failure: PDF and Word carry real content that cannot be
+// decoded without an extractor, so those sources are stored and indexed as metadata.
+enum IngestSourceStatus {
+  STAGED
+  PENDING_EXTRACTION
+  INDEXED
+  FAILED
+}
+
+// Page Index Builds
+// One row per "build the index" action, so an index that was handed downstream stays
+// reproducible and sources can be re-indexed once an extractor fills in their text.
+model PageIndexBuild {
+  id          String              @id @default(uuid())
+  version     String              @default("1.0")
+  label       String?
+  sourceCount Int
+  documents   PageIndexDocument[]
+  createdAt   DateTime            @default(now())
+
+  @@index([createdAt(sort: Desc)])
+  @@map("page_index_builds")
+}
+
+model PageIndexDocument {
+  id        String             @id @default(uuid())
+  buildId   String
+  build     PageIndexBuild     @relation(fields: [buildId], references: [id], onDelete: Cascade)
+  sourceId  String
+  source    IngestSource       @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  /// Position within the build: 1 renders as `doc_1`.
+  ordinal   Int
+  title     String
+  mime      String
+  sizeBytes Int
+  status    PageIndexDocStatus
+  note      String?
+  chars     Int                @default(0)
+  words     Int                @default(0)
+  sections  Int                @default(0)
+  nodes     PageIndexNode[]
+
+  @@unique([buildId, ordinal])
+  @@map("page_index_documents")
+}
+
+enum PageIndexDocStatus {
+  INDEXED
+  PENDING_EXTRACTION
+  ERROR
+}
+
+// One section of a document. The section text is not stored: `startChar`/`endChar`
+// index into IngestSource.text, so there is one copy of the content and no way for a
+// chunk to drift from the document it came from.
+model PageIndexNode {
+  id         String            @id @default(uuid())
+  documentId String
+  document   PageIndexDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  ordinal    Int
+  depth      Int
+  heading    String
+  startChar  Int
+  endChar    Int
+  words      Int
+  preview    String
+
+  @@unique([documentId, ordinal])
+  @@index([documentId, ordinal])
+  @@map("page_index_nodes")
 }
