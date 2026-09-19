@@ -1,6 +1,6 @@
 import { LogKind, LogStatus, Prisma } from '@prisma/client';
 import { prisma } from './db';
-import type { LogKindFilter } from './logKinds';
+import type { LogQuery } from './logQuery';
 
 export { LOG_KIND_FILTERS, type LogKindFilter } from './logKinds';
 
@@ -50,32 +50,82 @@ export function recordActivityAsync(entry: LogEntry): void {
 }
 
 
-export interface ActivityQuery {
-  kind: LogKindFilter;
-  q: string;
-  limit: number;
-}
-
-export async function listActivity(query: ActivityQuery) {
+export function buildLogWhere(query: LogQuery): Prisma.ActivityLogWhereInput {
   const where: Prisma.ActivityLogWhereInput = {};
 
-  if (query.kind !== 'all') {
-    where.kind = query.kind.toUpperCase() as LogKind;
+  if (query.kind !== 'all') where.kind = query.kind.toUpperCase() as LogKind;
+  if (query.status !== 'all') where.status = query.status.toUpperCase() as LogStatus;
+
+  if (query.from || query.to) {
+    where.createdAt = {
+      ...(query.from ? { gte: query.from } : {}),
+      ...(query.to ? { lte: query.to } : {}),
+    };
   }
+
+  // Rows with no measurement are excluded rather than treated as zero: "slower than
+  // 2s" should not match an event whose latency was never recorded.
+  if (query.minLatency > 0) where.latencyMs = { gte: query.minLatency };
 
   if (query.q) {
     const contains = { contains: query.q, mode: Prisma.QueryMode.insensitive };
-    where.OR = [{ event: contains }, { sessionId: contains }, { model: contains }, { detail: contains }];
+    where.OR = [
+      { event: contains },
+      { sessionId: contains },
+      { model: contains },
+      { detail: contains },
+    ];
   }
 
-  return prisma.activityLog.findMany({
-    where,
-    orderBy: { createdAt: 'desc' },
-    take: query.limit,
-  });
+  return where;
 }
 
-export type ActivityRecord = Awaited<ReturnType<typeof listActivity>>[number];
+function buildLogOrderBy(query: LogQuery): Prisma.ActivityLogOrderByWithRelationInput[] {
+  // `id` is the tiebreaker. Without a stable secondary sort, rows holding equal values
+  // can reshuffle between pages and a row is silently skipped while paginating.
+  switch (query.sort) {
+    case 'event':
+      return [{ event: query.dir }, { id: 'asc' }];
+    case 'model':
+      return [{ model: { sort: query.dir, nulls: 'last' } }, { id: 'asc' }];
+    case 'latencyMs':
+      return [{ latencyMs: { sort: query.dir, nulls: 'last' } }, { id: 'asc' }];
+    default:
+      return [{ createdAt: query.dir }, { id: 'asc' }];
+  }
+}
+
+/**
+ * One page of activity, filtered and sorted in Postgres.
+ *
+ * `total` is the unfiltered count, so the UI can say how much of the log the current
+ * filter is showing rather than just how many rows came back.
+ */
+export async function listActivity(query: LogQuery) {
+  const where = buildLogWhere(query);
+  const perPage = query.perPage;
+
+  const [matching, total, rows] = await Promise.all([
+    prisma.activityLog.count({ where }),
+    prisma.activityLog.count(),
+    prisma.activityLog.findMany({
+      where,
+      orderBy: buildLogOrderBy(query),
+      skip: (query.page - 1) * perPage,
+      take: perPage,
+    }),
+  ]);
+
+  return {
+    rows,
+    total,
+    matching,
+    perPage,
+    pageCount: Math.max(1, Math.ceil(matching / perPage)),
+  };
+}
+
+export type ActivityRecord = Awaited<ReturnType<typeof listActivity>>['rows'][number];
 
 /**
  * Latency percentiles per event kind, computed from recorded measurements.
