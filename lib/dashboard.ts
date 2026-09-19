@@ -188,12 +188,11 @@ export async function getLatencyRoutes(): Promise<LatencyItem[]> {
 
 /** Real counts for the sidebar badges. */
 export async function getNavBadges() {
-  const [conversations, skusInReview, ingestJobs, renders] = await Promise.all([
+  const [conversations, skusInReview, ingestJobs] = await Promise.all([
     prisma.shopperSession.count(),
     prisma.productSku.count({ where: { state: SkuState.REVIEW } }),
     prisma.ingestJob.count({ where: { state: { in: ['QUEUED', 'EXTRACTING'] } } }),
-    prisma.avatarRender.count({ where: { state: { in: ['QUEUED', 'RENDERING'] } } }),
   ]);
 
-  return { conversations, skusInReview, ingestJobs, renders };
+  return { conversations, skusInReview, ingestJobs };
 }
