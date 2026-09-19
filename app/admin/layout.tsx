@@ -46,7 +46,6 @@ export default async function AdminLayout({
     conversations: badges.conversations,
     catalogue: badges.skusInReview,
     ingest: badges.ingestJobs,
-    avatar: badges.renders,
   };
 
   const tabs = TAB_DEFINITIONS.map((tab) => ({
