@@ -72,6 +72,17 @@ export const TAB_DEFINITIONS: NavTab[] = [
     cta: 'Save entry',
   },
   {
+    id: 'persona',
+    href: '/admin/persona',
+    label: 'Persona',
+    badge: '',
+    crumb: 'avatar',
+    title: 'Avatar persona',
+    subtitle:
+      'Tune the opening intro, character profile and operating instructions used by the avatar.',
+    cta: 'Save persona',
+  },
+  {
     id: 'memory',
     href: '/admin/memory',
     label: 'Memory',
