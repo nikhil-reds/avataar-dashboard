@@ -13,6 +13,7 @@ import {
   FileEdit,
   Brain,
   MessagesSquare,
+  UserRoundCog,
   X,
 } from 'lucide-react';
 
@@ -33,6 +34,7 @@ const TAB_ICONS: Record<TabId, React.ReactNode> = {
   catalogue: <Database className="w-[18px] h-[18px]" />,
   ingest: <FileUp className="w-[18px] h-[18px]" />,
   manual: <FileEdit className="w-[18px] h-[18px]" />,
+  persona: <UserRoundCog className="w-[18px] h-[18px]" />,
   memory: <Brain className="w-[18px] h-[18px]" />,
 };
 
