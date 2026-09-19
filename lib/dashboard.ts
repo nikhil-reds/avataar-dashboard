@@ -1,6 +1,7 @@
 import { LogKind, LogStatus, SkuState, SpeakerRole } from '@prisma/client';
 import { prisma } from './db';
 import { latencyByKind } from './activity';
+import { redisStatus } from './redis';
 import type { LatencyItem, ServiceHealthItem, StatItem } from '../types';
 
 const GREEN = '#10b981';
@@ -127,8 +128,8 @@ export async function getServiceHealth(): Promise<ServiceHealthItem[]> {
     prisma.sessionTurn.count(),
   ]);
 
-  const geminiConfigured = Boolean(process.env.GEMINI_API_KEY);
   const avatarConfigured = Boolean(process.env.LIVEAVATAR_API_KEY);
+  const redis = redisStatus();
 
   return [
     {
@@ -146,10 +147,24 @@ export async function getServiceHealth(): Promise<ServiceHealthItem[]> {
       color: !avatarConfigured ? GREY : avatarErrors > 0 ? RED : GREEN,
     },
     {
-      name: 'Gemini',
-      note: geminiConfigured ? `${geminiCalls} calls in 24h` : 'GEMINI_API_KEY not configured',
-      metric: geminiErrors > 0 ? `${geminiErrors} errors` : geminiConfigured ? 'ready' : 'no key',
-      color: !geminiConfigured ? GREY : geminiErrors > 0 ? RED : GREEN,
+      // Shared runtime state. Reported honestly: the in-memory fallback is not Redis
+      // and is never coloured as healthy, because two workers do not share it.
+      name: 'Redis',
+      note: redis.available
+        ? 'shared session state · distributed locking active'
+        : redis.configured
+          ? 'configured but unreachable · in-memory fallback, locks are process-local'
+          : 'not configured · in-memory fallback, locks are process-local',
+      metric: redis.available ? 'redis' : 'memory',
+      color: redis.available ? GREEN : redis.configured ? RED : AMBER,
+    },
+    {
+      // HeyGen owns the conversation LLM. These counters cover turn orchestration and
+      // any optional Gemini-backed feature, neither of which gates the avatar.
+      name: 'Turn orchestration',
+      note: `${geminiCalls} turn events in 24h · HeyGen owns LLM + voice`,
+      metric: geminiErrors > 0 ? `${geminiErrors} errors` : 'ready',
+      color: geminiErrors > 0 ? RED : GREEN,
     },
     {
       name: 'Transcript store',
