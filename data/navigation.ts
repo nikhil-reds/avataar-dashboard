@@ -13,7 +13,7 @@ export const TAB_DEFINITIONS: NavTab[] = [
     crumb: 'overview',
     title: 'System health',
     subtitle:
-      'Live status of the avatar pipeline: retrieval, local inference, HeyGen renders and the memory store.',
+      'Live status of the avatar pipeline: retrieval, HeyGen renders and the memory store.',
     cta: 'Run diagnostics',
   },
   {
@@ -24,7 +24,7 @@ export const TAB_DEFINITIONS: NavTab[] = [
     crumb: 'observability',
     title: 'Activity & request logs',
     subtitle:
-      'Every turn the avatar handled, with the model that answered it and where the time went.',
+      'Every turn the avatar handled, where it came from and where the time went.',
     cta: 'Export CSV',
   },
   {
@@ -57,8 +57,8 @@ export const TAB_DEFINITIONS: NavTab[] = [
     crumb: 'content',
     title: 'PDF ingest & scrape review',
     subtitle:
-      'Upload supplier documents, watch extraction, and approve rows before they reach the catalogue.',
-    cta: 'Upload PDF',
+      'Upload supplier documents or paste text, then build the page index the avatar will read from.',
+    cta: 'Add source',
   },
   {
     id: 'manual',
@@ -70,17 +70,6 @@ export const TAB_DEFINITIONS: NavTab[] = [
     subtitle:
       'Add or correct a product by hand when no document exists — same schema as the extractor writes.',
     cta: 'Save entry',
-  },
-  {
-    id: 'avatar',
-    href: '/admin/avatar',
-    label: 'Avatar studio',
-    badge: '',
-    crumb: 'avatar',
-    title: 'Avatar & video generation',
-    subtitle:
-      'Full-body Indian persona rendered through HeyGen. Compose a script, pick a voice, queue the render.',
-    cta: 'New render',
   },
   {
     id: 'memory',
