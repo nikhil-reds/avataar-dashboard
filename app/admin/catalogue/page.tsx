@@ -1,8 +1,9 @@
 import { Header } from '@/components/layout/Header';
 import { CatalogueSearch } from '@/components/catalogue/CatalogueSearch';
 import { CatalogueTable } from '@/components/catalogue/CatalogueTable';
+import { SkuDetailPanel } from '@/components/catalogue/SkuDetailPanel';
 import { TAB_BY_ID, tabMetadata } from '@/data/navigation';
-import { listSkus } from '@/lib/catalogue';
+import { getSku, listSkus } from '@/lib/catalogue';
 
 export const metadata = tabMetadata('catalogue');
 
@@ -15,8 +16,16 @@ export default async function CataloguePage({
 }) {
   const raw = await searchParams;
   const q = ((Array.isArray(raw.q) ? raw.q[0] : raw.q) ?? '').trim().slice(0, 200);
+  const selectedId = ((Array.isArray(raw.selected) ? raw.selected[0] : raw.selected) ?? '').trim();
 
-  const { rows, total, matching } = await listSkus(q);
+  const [{ rows, total, matching }, selected] = await Promise.all([
+    listSkus(q),
+    // A stale or hand-edited id resolves to null and the list simply renders without
+    // the panel, rather than the page failing.
+    selectedId ? getSku(selectedId) : Promise.resolve(null),
+  ]);
+
+  const closeHref = q ? `/admin/catalogue?q=${encodeURIComponent(q)}` : '/admin/catalogue';
 
   return (
     <>
@@ -32,9 +41,16 @@ export default async function CataloguePage({
         </div>
         <div className="flex flex-col gap-3">
           <CatalogueSearch searchQuery={q} matching={matching} total={total} />
-          <CatalogueTable skus={rows} hasQuery={Boolean(q)} />
+          <CatalogueTable
+            skus={rows}
+            hasQuery={Boolean(q)}
+            searchQuery={q}
+            selectedId={selected?.id ?? null}
+          />
         </div>
       </div>
+
+      {selected && <SkuDetailPanel sku={selected} closeHref={closeHref} />}
     </>
   );
 }
