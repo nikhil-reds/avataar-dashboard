@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { MicOff, Loader2 } from 'lucide-react';
-import { fetchSessionToken, stopSessionOnServer } from '@/lib/liveavatar';
+import { fetchSessionToken, reportTurnEvent, stopSessionOnServer } from '@/lib/liveavatar';
+import { TurnManager } from '@/lib/agent/turnManager';
 import { useConversationRecorder } from '@/lib/useConversationRecorder';
 import { describeMicFailure, type MicFailure } from '@/lib/microphone';
 import { ScreenSaver } from '@/components/avatar-stage/ScreenSaver';
@@ -43,6 +44,7 @@ export default function AvatarPanel({
   const videoRef        = useRef<HTMLVideoElement>(null);
   const keepAliveRef    = useRef<ReturnType<typeof setInterval> | null>(null);
   const startingRef     = useRef(false);
+  const turnsRef        = useRef<TurnManager | null>(null);
 
   const isLive = phase === 'live';
 
@@ -61,6 +63,7 @@ export default function AvatarPanel({
   useEffect(() => {
     return () => {
       if (keepAliveRef.current) clearInterval(keepAliveRef.current);
+      turnsRef.current?.reset();
       sessionRef.current?.stop().catch(() => {});
       if (sessionTokenRef.current) stopSessionOnServer(sessionTokenRef.current);
     };
@@ -125,6 +128,24 @@ export default function AvatarPanel({
       const session = new LiveAvatarSession(token);
       sessionRef.current = session;
 
+      /**
+       * Application-side turn tracking. HeyGen still owns the LLM and the voice —
+       * this only observes the conversation to manage turn state, interruption and
+       * latency. `speakBuffer` is opt-in because in FULL mode HeyGen answers every
+       * utterance itself, and a client filler on top of that has not been verified
+       * against a live session.
+       */
+      const turns = new TurnManager(
+        {
+          speakText: (text) => session.repeat(text),
+          speakAudio: (url) => session.repeatAudio(url),
+          interrupt: () => session.interrupt(),
+          report: reportTurnEvent,
+        },
+        { speakBuffer: process.env.NEXT_PUBLIC_AVATAR_BUFFER === 'on' }
+      );
+      turnsRef.current = turns;
+
       session.on(SessionEvent.SESSION_STREAM_READY, () => {
         const video = videoRef.current;
         if (!video) return;
@@ -145,12 +166,29 @@ export default function AvatarPanel({
         setPhase('ended');
       });
 
-      session.on(AgentEventsEnum.AVATAR_SPEAK_STARTED, () => setIsSpeaking(true));
-      session.on(AgentEventsEnum.AVATAR_SPEAK_ENDED,   () => setIsSpeaking(false));
+      session.on(AgentEventsEnum.AVATAR_SPEAK_STARTED, () => {
+        setIsSpeaking(true);
+        turns.onAvatarSpeakStarted();
+      });
+      session.on(AgentEventsEnum.AVATAR_SPEAK_ENDED, () => {
+        setIsSpeaking(false);
+        turns.onAvatarSpeakEnded();
+      });
+
+      // Barge-in. The manager only issues avatar.interrupt when the avatar is actually
+      // speaking, so an ordinary turn boundary does not fire a needless command.
+      session.on(AgentEventsEnum.USER_SPEAK_STARTED, () => turns.onUserSpeakStarted());
+
+      // Partials are UI-only: no turn, no retrieval, no network.
+      session.on(AgentEventsEnum.USER_TRANSCRIPTION_CHUNK, (e) =>
+        turns.onPartialTranscript(e.text)
+      );
 
       // Only the finalized transcription events are persisted. The *_CHUNK variants are
       // streaming partials and would write a row per fragment.
       session.on(AgentEventsEnum.USER_TRANSCRIPTION, (e) => {
+        // Opens the turn and fires the buffer fast path before any network call.
+        turns.onFinalTranscript(e.text, e.event_id);
         recorder.recordShopper(e.event_id, e.text);
         onUserTranscription?.(e.text);
       });
@@ -171,6 +209,7 @@ export default function AvatarPanel({
       // Begins buffering immediately, so the avatar's opening line is captured while the
       // session record is still being created.
       void recorder.start(session.sessionId);
+      turns.attachSession(session.sessionId);
       await startVoiceChat(session);
 
       onSessionReady?.((text: string) => session.message(text));
@@ -178,6 +217,7 @@ export default function AvatarPanel({
       setError(err instanceof Error ? err.message : 'Failed to start session');
       sessionRef.current = null;
       sessionTokenRef.current = null;
+      turnsRef.current = null;
       setPhase('idle');
     } finally {
       startingRef.current = false;
@@ -186,11 +226,13 @@ export default function AvatarPanel({
 
   const handleEnd = useCallback(async () => {
     if (keepAliveRef.current) clearInterval(keepAliveRef.current);
+    turnsRef.current?.reset();
     await recorder.end();
     try { await sessionRef.current?.stop(); } catch {}
     if (sessionTokenRef.current) stopSessionOnServer(sessionTokenRef.current);
     sessionRef.current = null;
     sessionTokenRef.current = null;
+    turnsRef.current = null;
     setIsSpeaking(false);
     setAudioLocked(false);
     setMicFailure(null);

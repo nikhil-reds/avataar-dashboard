@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { LogKind, LogStatus, Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { recordActivity } from '@/lib/activity';
+import { KEYS, del as cacheDel } from '@/lib/redis';
 
 /**
  * Remove a product from the catalogue.
@@ -28,6 +29,7 @@ export async function DELETE(
       model: 'admin',
       detail: deleted.name,
     });
+    await cacheDel(KEYS.catalogueIndex());
 
     return NextResponse.json({ deleted: deleted.id, sku: deleted.sku });
   } catch (err) {
