@@ -151,6 +151,21 @@ model AvatarRender {
   @@map("avatar_renders")
 }
 
+// Live Avatar Persona Settings
+// One active row edits the prompt-like behavior the shopper hears: the first line,
+// the character profile, and durable operating instructions.
+model AvatarPersona {
+  id           String   @id @default(uuid())
+  key          String   @unique @default("default")
+  openingIntro String   @db.Text
+  persona      String   @db.Text
+  instructions String   @db.Text
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("avatar_personas")
+}
+
 enum RenderState {
   QUEUED
   RENDERING

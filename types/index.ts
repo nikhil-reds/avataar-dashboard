@@ -5,6 +5,7 @@ export type TabId =
   | 'catalogue'
   | 'ingest'
   | 'manual'
+  | 'persona'
   | 'memory';
 
 export interface NavTab {
@@ -51,6 +52,14 @@ export interface ManualFormState {
   price: string;
   stock: string;
   supplier: string;
+}
+
+export interface PersonaSettings {
+  id: string;
+  openingIntro: string;
+  persona: string;
+  instructions: string;
+  updatedAt: string;
 }
 
 
