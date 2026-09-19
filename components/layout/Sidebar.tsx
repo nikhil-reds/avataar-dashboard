@@ -11,7 +11,6 @@ import {
   Database,
   FileUp,
   FileEdit,
-  Video,
   Brain,
   MessagesSquare,
   X,
@@ -34,7 +33,6 @@ const TAB_ICONS: Record<TabId, React.ReactNode> = {
   catalogue: <Database className="w-[18px] h-[18px]" />,
   ingest: <FileUp className="w-[18px] h-[18px]" />,
   manual: <FileEdit className="w-[18px] h-[18px]" />,
-  avatar: <Video className="w-[18px] h-[18px]" />,
   memory: <Brain className="w-[18px] h-[18px]" />,
 };
 
