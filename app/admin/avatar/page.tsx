@@ -4,14 +4,17 @@ import { RenderComposer } from '@/components/avatar/RenderComposer';
 import { RenderQueue } from '@/components/avatar/RenderQueue';
 import { TAB_BY_ID, tabMetadata } from '@/data/navigation';
 import { prisma } from '@/lib/db';
+import { liveAvatarConfig } from '@/lib/liveavatarConfig';
 
 export const metadata = tabMetadata('avatar');
 
 export const dynamic = 'force-dynamic';
 
-const VOICES = ['Hindi–English (Meera)', 'English IN (Meera)', 'Tamil (Anitha)'];
+const FALLBACK_VOICES = ['Hindi-English (Meera)', 'English IN (Meera)', 'Tamil (Anitha)'];
 
 export default async function AvatarStudioPage() {
+  const { voiceId } = liveAvatarConfig();
+  const voices = voiceId ? [voiceId] : FALLBACK_VOICES;
   const renders = await prisma.avatarRender.findMany({
     orderBy: { createdAt: 'desc' },
     take: 40,
@@ -35,10 +38,10 @@ export default async function AvatarStudioPage() {
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-[300px_1fr] gap-6 items-start">
-          <AvatarPreview voiceLabel={VOICES[0]} />
+          <AvatarPreview voiceLabel={voices[0]} />
 
           <div className="flex flex-col gap-6">
-            <RenderComposer voices={VOICES} />
+            <RenderComposer voices={voices} />
             <RenderQueue renders={renders} />
           </div>
         </div>
@@ -46,4 +49,3 @@ export default async function AvatarStudioPage() {
     </>
   );
 }
-
