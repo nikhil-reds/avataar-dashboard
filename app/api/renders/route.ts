@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { LogKind, RenderState } from '@prisma/client';
+import { LogKind, RenderState } from '@/app/generated/prisma';
 import { prisma } from '@/lib/db';
 import { recordActivity } from '@/lib/activity';
 
