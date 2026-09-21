@@ -3,14 +3,15 @@
 /**
  * Which side generates the avatar's answers.
  *
- * `local` — this app answers: retrieval over the knowledge base in Postgres, then Gemini,
- * then the text is handed to the avatar to speak. HeyGen's own agent is not given a
- * context, so it does not answer on its own.
+ * `redis` — this app answers from the Redis avatar context cache, then hands the short
+ * text to LiveAvatar to speak. This is the fast path for kiosk conversations.
+ *
+ * `local` — legacy local-model path.
  *
  * `heygen` — HeyGen's agent answers from its configured context, as it did before the
  * knowledge base existed. Nothing in this app grounds those answers.
  */
-export type AvatarBrain = 'local' | 'heygen';
+export type AvatarBrain = 'redis' | 'local' | 'heygen';
 
 export interface AvatarSessionToken {
   token: string;
@@ -25,7 +26,10 @@ export async function fetchSessionToken(): Promise<AvatarSessionToken> {
     throw new Error(err.error ?? 'Failed to create LiveAvatar session');
   }
   const { session_token, brain } = await res.json();
-  return { token: session_token, brain: brain === 'heygen' ? 'heygen' : 'local' };
+  return {
+    token: session_token,
+    brain: brain === 'heygen' || brain === 'local' ? brain : 'redis',
+  };
 }
 
 export async function stopSessionOnServer(sessionToken: string): Promise<void> {
