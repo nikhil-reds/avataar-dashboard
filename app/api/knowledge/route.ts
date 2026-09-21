@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { LogKind, LogStatus } from '@prisma/client';
+import { LogKind, LogStatus } from '@/app/generated/prisma';
 import { recordActivity } from '@/lib/activity';
 import {
   KNOWLEDGE_PAGE_SIZE,
@@ -9,6 +9,7 @@ import {
   listKnowledgeCategories,
   type KnowledgeStatusFilter,
 } from '@/lib/knowledge';
+import { refreshAvatarContextCache } from '@/lib/avatarContextCache';
 import { parseKnowledgeInput } from '@/lib/validation';
 
 // Reads and writes must both see the current table on every request: knowledge added in
@@ -71,6 +72,7 @@ export async function POST(request: Request) {
       model: 'knowledge',
       detail: created.category,
     });
+    void refreshAvatarContextCache().catch((err) => console.warn('[redis] context refresh failed', err));
 
     return NextResponse.json(created, { status: 201 });
   } catch (err) {
