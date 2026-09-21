@@ -1,4 +1,4 @@
-import { LogKind, LogStatus, Prisma } from '@prisma/client';
+import { LogKind, LogStatus, Prisma } from '@/app/generated/prisma';
 import { prisma } from './db';
 import type { LogKindFilter } from './logKinds';
 
