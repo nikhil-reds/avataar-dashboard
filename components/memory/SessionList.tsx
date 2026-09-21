@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { SessionStatus } from '@prisma/client';
+import { SessionStatus } from '@/app/generated/prisma';
 import { formatStamp } from '../../lib/conversationQuery';
 import { TAB_BY_ID } from '@/data/navigation';
 
