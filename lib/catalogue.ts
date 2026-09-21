@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+import { Prisma } from '@/app/generated/prisma';
 import { prisma } from './db';
 
 export const SKU_PAGE_SIZE = 50;
