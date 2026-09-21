@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { IngestJobState, type IngestJob } from '@prisma/client';
+import { IngestJobState, type IngestJob } from '@/app/generated/prisma';
 import { TAB_BY_ID } from '@/data/navigation';
 
 interface ExtractionQueueProps {
