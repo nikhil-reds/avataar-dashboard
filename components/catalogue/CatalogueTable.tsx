@@ -1,5 +1,5 @@
 import React from 'react';
-import { SkuState } from '@prisma/client';
+import { SkuState } from '@/app/generated/prisma';
 import { formatPrice, type SkuRecord } from '../../lib/catalogue';
 
 interface CatalogueTableProps {
