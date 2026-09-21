@@ -1,7 +1,8 @@
-import { LogKind, LogStatus, SkuState, SpeakerRole } from '@prisma/client';
+import { LogKind, LogStatus, SkuState, SpeakerRole } from '@/app/generated/prisma';
 import { prisma } from './db';
 import { latencyByKind } from './activity';
 import { llmBaseUrl, llmModel } from './llm';
+import { liveAvatarConfig } from './liveavatarConfig';
 import type { LatencyItem, ServiceHealthItem, StatItem } from '../types';
 
 const GREEN = '#10b981';
@@ -128,7 +129,7 @@ export async function getServiceHealth(): Promise<ServiceHealthItem[]> {
     prisma.sessionTurn.count(),
   ]);
 
-  const avatarConfigured = Boolean(process.env.LIVEAVATAR_API_KEY);
+  const avatarConfigured = Boolean(liveAvatarConfig().apiKey);
 
   // The model runs locally, so "configured" is not a key check but a reachability check:
   // the container is either answering or it is not.
