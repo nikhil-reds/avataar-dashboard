@@ -1,5 +1,5 @@
 import React from 'react';
-import { ReviewVerdict, type ExtractedRow, type IngestJob } from '@prisma/client';
+import { ReviewVerdict, type ExtractedRow, type IngestJob } from '@/app/generated/prisma';
 import { CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
 
 interface ReviewRowsProps {
