@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { LogStatus } from '@prisma/client';
+import { LogStatus } from '@/app/generated/prisma';
 import type { ActivityRecord } from '../../lib/activity';
 import type { LogKindFilter } from '../../lib/logKinds';
 import { formatStamp } from '../../lib/conversationQuery';
