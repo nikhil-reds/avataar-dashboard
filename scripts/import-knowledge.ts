@@ -11,7 +11,7 @@
  * not — it reads the database.
  */
 import 'dotenv/config';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../app/generated/prisma';
 import { RUBENIUS_KNOWLEDGE } from '../app/constants/knowledge';
 
 const prisma = new PrismaClient();
