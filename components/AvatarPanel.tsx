@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { fetchSessionToken, stopSessionOnServer, type AvatarBrain } from '@/lib/liveavatar';
 import { MicOff, Loader2 } from 'lucide-react';
-import { fetchSessionToken, stopSessionOnServer } from '@/lib/liveavatar';
 import { useConversationRecorder } from '@/lib/useConversationRecorder';
 import { describeMicFailure, type MicFailure } from '@/lib/microphone';
 import { ScreenSaver } from '@/components/avatar-stage/ScreenSaver';
@@ -53,11 +52,12 @@ export default function AvatarPanel({
   const sessionRef      = useRef<LiveAvatarSession | null>(null);
   const sessionTokenRef = useRef<string | null>(null);
   const videoRef        = useRef<HTMLVideoElement>(null);
+  const audioRef        = useRef<HTMLAudioElement>(null);
   const keepAliveRef    = useRef<ReturnType<typeof setInterval> | null>(null);
   const startingRef     = useRef(false);
 
-  // Set from the token response. While it reads 'heygen' this component stays a pure
-  // renderer and HeyGen's agent answers, exactly as it did before the knowledge base.
+  // Set from the token response. In `redis` and `local` modes this app writes the words
+  // and LiveAvatar only speaks them; `heygen` lets LiveAvatar's own agent answer.
   const brainRef        = useRef<AvatarBrain>('local');
   const historyRef      = useRef<ChatTurn[]>([]);
   // Increments per question. An answer whose ticket is stale — the shopper spoke again
@@ -87,10 +87,18 @@ export default function AvatarPanel({
 
   const unlockAudio = useCallback(() => {
     const video = videoRef.current;
-    if (!video) return;
-    video.muted = false;
-    video.play().catch(() => {});
-    setAudioLocked(false);
+    const audio = audioRef.current;
+    if (!video && !audio) return;
+
+    const playables = [video, audio].filter(Boolean) as HTMLMediaElement[];
+    for (const el of playables) {
+      el.muted = false;
+      el.volume = 1;
+    }
+
+    Promise.all(playables.map((el) => el.play()))
+      .then(() => setAudioLocked(false))
+      .catch(() => setAudioLocked(true));
   }, []);
 
   /**
@@ -153,6 +161,8 @@ export default function AvatarPanel({
     },
     [recorder]
   );
+
+  /**
    * Bring the shopper's microphone up.
    *
    * A missing, blocked or busy microphone is a normal condition on a kiosk, not a
@@ -208,16 +218,40 @@ export default function AvatarPanel({
 
       session.on(SessionEvent.SESSION_STREAM_READY, () => {
         const video = videoRef.current;
+        const audio = audioRef.current;
         if (!video) return;
         session.attach(video);
+
+        const remoteAudioTrack = (session as unknown as {
+          _remoteAudioTrack?: { attach: (element: HTMLMediaElement) => unknown };
+        })._remoteAudioTrack;
+        if (audio && remoteAudioTrack) remoteAudioTrack.attach(audio);
+
         video.muted = false;
-        video.play().catch(() => {
-          video.muted = true;
-          setAudioLocked(true);
-        });
+        video.volume = 1;
+        if (audio) {
+          audio.muted = false;
+          audio.volume = 1;
+        }
+
+        const playables = [video, audio].filter(Boolean) as HTMLMediaElement[];
+        Promise.all(playables.map((el) => el.play()))
+          .then(() => setAudioLocked(false))
+          .catch(() => {
+            video.muted = true;
+            if (audio) audio.muted = true;
+            setAudioLocked(true);
+          });
         // The skeleton is held until here rather than until `start()` resolves,
         // so it is never replaced by an empty video element.
         setPhase('live');
+
+        if (brainRef.current === 'redis') {
+          window.setTimeout(() => {
+            if (sessionRef.current !== session) return;
+            void answerQuestion('hello');
+          }, 600);
+        }
       });
 
       session.on(SessionEvent.SESSION_DISCONNECTED, () => {
@@ -235,9 +269,9 @@ export default function AvatarPanel({
         recorder.recordShopper(e.event_id, e.text);
         onUserTranscription?.(e.text);
 
-        // This is the knowledge base entering the conversation: the finalized question
-        // goes to the chat API, which grounds the answer in Postgres.
-        if (brainRef.current === 'local') void answerQuestion(e.text);
+        // This is the app brain entering the conversation: Redis/local modes generate
+        // the short content, then LiveAvatar speaks it with the configured voice.
+        if (brainRef.current !== 'heygen') void answerQuestion(e.text);
       });
       session.on(AgentEventsEnum.AVATAR_TRANSCRIPTION, (e) => {
         recorder.recordAvatar(e.event_id, e.text);
@@ -267,8 +301,7 @@ export default function AvatarPanel({
     } finally {
       startingRef.current = false;
     }
-  }, [onStart, onUserTranscription, onAvatarTranscription, onSessionReady, recorder, answerQuestion]);
-  }, [onUserTranscription, onAvatarTranscription, onSessionReady, recorder, startVoiceChat]);
+  }, [onUserTranscription, onAvatarTranscription, onSessionReady, recorder, answerQuestion, startVoiceChat]);
 
   const handleEnd = useCallback(async () => {
     if (keepAliveRef.current) clearInterval(keepAliveRef.current);
@@ -312,6 +345,7 @@ export default function AvatarPanel({
             autoPlay
             playsInline
           />
+          <audio ref={audioRef} autoPlay playsInline className="hidden" />
 
           {/* Tap-to-unlock audio overlay */}
           {audioLocked && (
