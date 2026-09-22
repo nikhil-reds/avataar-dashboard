@@ -22,10 +22,19 @@ interface ChatTurn {
 }
 
 const MAX_LOCAL_HISTORY = 20;
+const SELF_ECHO_SUPPRESSION_MS = 8_000;
 
 /** Spoken when the knowledge pipeline cannot be reached, so the avatar is never mute. */
 const FALLBACK_REPLY =
   'Sorry, I could not reach my knowledge base just then. Could you ask me that again?';
+
+function normalizeSpeech(text: string) {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
 /**
  * `connecting` covers everything between the click and the first video frame —
  * token mint, WebRTC negotiation and stream attach — because that whole stretch
@@ -34,6 +43,11 @@ const FALLBACK_REPLY =
 export type AvatarPhase = 'idle' | 'connecting' | 'live' | 'ended';
 
 export interface AvatarPanelProps {
+  autoStartKey?: number;
+  autoStopKey?: number;
+  className?: string;
+  showIdleScreen?: boolean;
+  showStageControl?: boolean;
   onPhaseChange?: (phase: AvatarPhase) => void;
   onUserTranscription?: (text: string) => void;
   onAvatarTranscription?: (text: string) => void;
@@ -41,6 +55,11 @@ export interface AvatarPanelProps {
 }
 
 export default function AvatarPanel({
+  autoStartKey,
+  autoStopKey,
+  className = '',
+  showIdleScreen = true,
+  showStageControl = true,
   onPhaseChange,
   onUserTranscription,
   onAvatarTranscription,
@@ -67,6 +86,10 @@ export default function AvatarPanel({
   // and LiveAvatar only speaks them; `heygen` lets LiveAvatar's own agent answer.
   const brainRef        = useRef<AvatarBrain>('local');
   const historyRef      = useRef<ChatTurn[]>([]);
+  const appSpeechRef    = useRef<{ text: string; until: number } | null>(null);
+  const listeningPausedForSpeechRef = useRef(false);
+  const handledAutoStartKeyRef = useRef<number | undefined>(undefined);
+  const handledAutoStopKeyRef = useRef<number | undefined>(undefined);
   // Increments per question. An answer whose ticket is stale — the shopper spoke again
   // while it was being generated — is discarded rather than spoken out of turn.
   const questionSeqRef  = useRef(0);
@@ -112,10 +135,8 @@ export default function AvatarPanel({
   /**
    * Answers one spoken question from the knowledge base.
    *
-   * The chat API does the retrieval and the generation; this only carries the question
-   * there and hands the answer to the avatar to speak. `message()` is the SDK's
-   * "speak this as your response" command, so the avatar's own transcription event still
-   * fires and the conversation recorder stores the turn as normal.
+   * The chat API does the retrieval and answer selection; this only carries the question
+   * there and hands the final words to the avatar to speak literally.
    */
   const answerQuestion = useCallback(
     async (question: string) => {
@@ -162,7 +183,20 @@ export default function AvatarPanel({
       historyRef.current = nextHistory.slice(-MAX_LOCAL_HISTORY);
 
       try {
-        session.message(reply);
+        appSpeechRef.current = {
+          text: normalizeSpeech(reply),
+          until: Date.now() + SELF_ECHO_SUPPRESSION_MS,
+        };
+
+        // In app-brain modes the browser microphone can hear the avatar's speaker output.
+        // Pause LiveAvatar listening while we command the avatar to speak, otherwise the
+        // spoken answer is transcribed as a fresh shopper question and loops forever.
+        try {
+          session.stopListening();
+          listeningPausedForSpeechRef.current = true;
+        } catch {}
+
+        session.repeat(reply);
       } catch (err) {
         console.error('[avatar] could not speak the answer', err);
       }
@@ -293,6 +327,14 @@ export default function AvatarPanel({
       session.on(AgentEventsEnum.AVATAR_SPEAK_ENDED, () => {
         setIsSpeaking(false);
         turns.onAvatarSpeakEnded();
+        if (brainRef.current !== 'heygen' && listeningPausedForSpeechRef.current) {
+          listeningPausedForSpeechRef.current = false;
+          try {
+            session.startListening();
+          } catch (err) {
+            console.warn('[LiveAvatar] could not resume listening after app speech', err);
+          }
+        }
       });
 
       // Barge-in. The manager only issues avatar.interrupt when the avatar is actually
@@ -307,6 +349,20 @@ export default function AvatarPanel({
       // Only the finalized transcription events are persisted. The *_CHUNK variants are
       // streaming partials and would write a row per fragment.
       session.on(AgentEventsEnum.USER_TRANSCRIPTION, (e) => {
+        const normalized = normalizeSpeech(e.text);
+        const appSpeech = appSpeechRef.current;
+        if (
+          brainRef.current !== 'heygen' &&
+          appSpeech &&
+          Date.now() <= appSpeech.until &&
+          normalized &&
+          normalized === appSpeech.text
+        ) {
+          recorder.recordAvatar(`avatar-echo-${e.event_id}`, e.text);
+          onAvatarTranscription?.(e.text);
+          return;
+        }
+
         // Opens the turn and fires the buffer fast path before any network call.
         turns.onFinalTranscript(e.text, e.event_id);
         recorder.recordShopper(e.event_id, e.text);
@@ -353,6 +409,8 @@ export default function AvatarPanel({
     // Invalidates any answer still in flight, so it cannot be spoken into a dead session.
     questionSeqRef.current++;
     turnsRef.current?.reset();
+    appSpeechRef.current = null;
+    listeningPausedForSpeechRef.current = false;
     await recorder.end();
     try { await sessionRef.current?.stop(); } catch {}
     if (sessionTokenRef.current) stopSessionOnServer(sessionTokenRef.current);
@@ -366,9 +424,25 @@ export default function AvatarPanel({
     setPhase('ended');
   }, [recorder]);
 
+  useEffect(() => {
+    if (autoStartKey === undefined) return;
+    if (handledAutoStartKeyRef.current === autoStartKey) return;
+    if (phase !== 'idle' && phase !== 'ended') return;
+    handledAutoStartKeyRef.current = autoStartKey;
+    queueMicrotask(() => void handleStart());
+  }, [autoStartKey, phase, handleStart]);
+
+  useEffect(() => {
+    if (autoStopKey === undefined) return;
+    if (handledAutoStopKeyRef.current === autoStopKey) return;
+    if (phase !== 'connecting' && phase !== 'live') return;
+    handledAutoStopKeyRef.current = autoStopKey;
+    queueMicrotask(() => void handleEnd());
+  }, [autoStopKey, phase, handleEnd]);
+
   return (
-    <section className="relative w-full h-full overflow-hidden bg-bg-primary">
-      {(phase === 'idle' || phase === 'ended') && <ScreenSaver />}
+    <section className={`relative w-full h-full overflow-hidden bg-bg-primary ${className}`}>
+      {showIdleScreen && (phase === 'idle' || phase === 'ended') && <ScreenSaver />}
 
       {/* The avatar is a portrait figure, so it gets a portrait frame rather than
           being stretched across the viewport. `w-auto` + `aspect-[9/16]` sizes it
@@ -469,22 +543,24 @@ export default function AvatarPanel({
 
       {/* Single control for the whole stage, parked in the bottom-right corner so it
           stays in one place across every phase. */}
-      <div
-        className="absolute z-30 flex items-center gap-3"
-        style={{
-          // Keeps the control clear of the iOS home indicator and, in landscape, the
-          // notch cut-out. Falls back to the plain 1.5rem where insets are 0.
-          bottom: 'max(1.5rem, env(safe-area-inset-bottom))',
-          right: 'max(1.5rem, env(safe-area-inset-right))',
-        }}
-      >
-        {error && (
-          <p className="max-w-60 text-right text-[12px] leading-snug font-medium text-[#b91c1c]">
-            {error}
-          </p>
-        )}
-        <StageControl phase={phase} onConnect={handleStart} onDisconnect={handleEnd} />
-      </div>
+      {showStageControl && (
+        <div
+          className="absolute z-30 flex items-center gap-3"
+          style={{
+            // Keeps the control clear of the iOS home indicator and, in landscape, the
+            // notch cut-out. Falls back to the plain 1.5rem where insets are 0.
+            bottom: 'max(1.5rem, env(safe-area-inset-bottom))',
+            right: 'max(1.5rem, env(safe-area-inset-right))',
+          }}
+        >
+          {error && (
+            <p className="max-w-60 text-right text-[12px] leading-snug font-medium text-[#b91c1c]">
+              {error}
+            </p>
+          )}
+          <StageControl phase={phase} onConnect={handleStart} onDisconnect={handleEnd} />
+        </div>
+      )}
     </section>
   );
 }
