@@ -1,5 +1,7 @@
 import { Prisma } from '@/app/generated/prisma';
 import { prisma } from './db';
+import { formatStamp } from './conversationQuery';
+import type { SkuDetail } from '../types';
 
 export const SKU_PAGE_SIZE = 50;
 
@@ -34,4 +36,30 @@ const INR = new Intl.NumberFormat('en-IN', {
 
 export function formatPrice(price: Prisma.Decimal): string {
   return INR.format(Number(price));
+}
+
+/**
+ * One product, for the detail sidebar. Fetched by id rather than picked out of the
+ * listing so a link to a SKU still opens when the current filter excludes it.
+ */
+export async function getSku(id: string): Promise<SkuDetail | null> {
+  const row = await prisma.productSku.findUnique({ where: { id } });
+  if (!row) return null;
+
+  return {
+    id: row.id,
+    sku: row.sku,
+    name: row.name,
+    category: row.category,
+    price: formatPrice(row.price),
+    stock: row.stock,
+    weight: row.weight,
+    makingCharge: row.makingCharge,
+    supplier: row.supplier,
+    talkingPoints: row.talkingPoints,
+    source: row.source,
+    state: row.state,
+    createdAt: formatStamp(row.createdAt),
+    updatedAt: formatStamp(row.updatedAt),
+  };
 }

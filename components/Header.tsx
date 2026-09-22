@@ -35,7 +35,7 @@ export default function Header({ status, timer }: HeaderProps) {
         />
         <div className="leading-none">
           <div className="text-[14px] font-semibold text-text-primary tracking-tight">Trifast Global</div>
-          <div className="hidden sm:block text-[11px] text-text-muted mt-0.5">AI Video Agent</div>
+          <div className="hidden sm:block text-[11px] text-text-muted mt-0.5">Video Agent</div>
         </div>
       </div>
 

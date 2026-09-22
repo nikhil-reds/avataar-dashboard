@@ -50,7 +50,7 @@ export function ScreenSaver() {
 
         <div className="flex flex-col items-center gap-3 max-w-md">
           <span className="font-mono text-[10.5px] tracking-[0.22em] uppercase font-semibold text-accent/70">
-            AI product assistant
+            Product specialist
           </span>
           <h1 className="text-[22px] sm:text-[26px] font-bold tracking-tight text-text-primary text-balance">
             Talk to a Trifast specialist, any time

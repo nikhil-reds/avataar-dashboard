@@ -3,11 +3,15 @@ import { LogKind, LogStatus } from '@/app/generated/prisma';
 import { recordActivity } from '@/lib/activity';
 import { warmUpModel } from '@/lib/llm';
 import { refreshAvatarContextCache } from '@/lib/avatarContextCache';
-import { liveAvatarConfig } from '@/lib/liveavatarConfig';
+import {
+  formatAvatarConfigLog,
+  liveAvatarConfig,
+  readEnv,
+  resolveAvatarConfig,
+  summarizeAvatarConfig,
+} from '@/lib/liveavatarConfig';
 
 const API_BASE = 'https://api.liveavatar.com';
-// Free sandbox avatar — used when LIVEAVATAR_AVATAR_ID is not set
-const SANDBOX_AVATAR_ID = 'dd73ea75-1218-4ef3-92ce-606d5f7fbc0a';
 
 async function configuredVoiceExists(apiKey: string, voiceId: string): Promise<boolean> {
   const res = await fetch(`${API_BASE}/v1/voices/${voiceId}`, {
@@ -24,8 +28,8 @@ async function configuredVoiceExists(apiKey: string, voiceId: string): Promise<b
   return data?.code === 1000;
 }
 
-export async function POST() {
-  const { apiKey, avatarId, contextId, voiceId, voiceAgentId } = liveAvatarConfig();
+export async function POST(request: Request) {
+  const { apiKey, voiceId, voiceAgentId } = liveAvatarConfig();
   if (!apiKey) {
     return NextResponse.json({ error: 'LIVEAVATAR_API_KEY not configured' }, { status: 500 });
   }
@@ -35,16 +39,25 @@ export async function POST() {
   const configuredBrain = process.env.AVATAR_BRAIN;
   const brain = configuredBrain === 'heygen' || configuredBrain === 'local' ? configuredBrain : 'redis';
 
+  let requestedMode: 'FULL' | 'LITE' = 'FULL';
+  try {
+    const body = await request.json();
+    if (body?.mode === 'LITE') requestedMode = 'LITE';
+  } catch {
+    // Existing callers send no body; keep that path as FULL mode.
+  }
+
+  const config = resolveAvatarConfig();
+  const { source, avatarId, contextId, isSandbox } = config;
   // A context is what gives HeyGen's agent its own opinions. Attaching one while this app
   // is also answering would have both of them reply to every question, so it is attached
   // only when HeyGen is the brain. A voice agent already owns its voice/model/context.
   const useVoiceAgent = brain === 'heygen' && Boolean(voiceAgentId);
   const useHeyGenContext = brain === 'heygen' && Boolean(contextId) && !useVoiceAgent;
-  const isSandbox = !avatarId;
 
   const body: Record<string, unknown> = {
-    mode: 'FULL',
-    avatar_id: avatarId || SANDBOX_AVATAR_ID,
+    mode: requestedMode,
+    avatar_id: avatarId,
   };
 
   if (useVoiceAgent) {
@@ -64,19 +77,29 @@ export async function POST() {
     }
   }
 
+  if (requestedMode === 'LITE' && readEnv('LIVEAVATAR_AUDIO_API_KEY')) {
+    body.audio = { api_key: readEnv('LIVEAVATAR_AUDIO_API_KEY') };
+  }
+
   if (isSandbox) {
     body.is_sandbox = true;
-    body.avatar_id = SANDBOX_AVATAR_ID;
   }
 
   if (useHeyGenContext) {
     (body.avatar_persona as Record<string, unknown>).context_id = contextId;
   }
 
+  const configSummary = summarizeAvatarConfig(config, requestedMode);
+  console.info(formatAvatarConfigLog(configSummary));
+
   // Fire-and-forget, in parallel with the token request: prepare whichever app-owned
   // brain will answer before the shopper asks the first question.
   if (brain === 'local') void warmUpModel();
-  if (brain === 'redis') void refreshAvatarContextCache().catch((err) => console.warn('[redis] context warm-up failed', err));
+  if (brain === 'redis') {
+    void refreshAvatarContextCache().catch((err) =>
+      console.warn('[redis] context warm-up failed', err)
+    );
+  }
 
   const startedAt = Date.now();
   const res = await fetch(`${API_BASE}/v1/sessions/token`, {
@@ -113,12 +136,17 @@ export async function POST() {
     kind: LogKind.SESSION,
     model: 'liveavatar',
     latencyMs: Date.now() - startedAt,
-    detail: `${brain} brain · ${avatarDetail}`,
+    detail: `${requestedMode.toLowerCase()} · avatar source ${source} · sandbox ${isSandbox} · context ${Boolean(
+      contextId
+    )} · ${brain} brain · ${avatarDetail}`,
   });
 
-  // `brain` is additive — the client reads it to decide whether to answer questions
-  // itself, so the mode is decided in one place rather than configured twice.
-  return NextResponse.json({ session_token: data.session_token, brain });
+  return NextResponse.json({
+    session_token: data.session_token,
+    brain,
+    mode: requestedMode,
+    config: configSummary,
+  });
 }
 
 export async function DELETE(request: Request) {

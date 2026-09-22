@@ -89,7 +89,7 @@ export const RenderComposer: React.FC<RenderComposerProps> = ({ voices }) => {
           ) : (
             <Send className="w-3.5 h-3.5" />
           )}
-          <span>{queueing ? 'Queueing…' : 'Queue render'}</span>
+          <span>{queueing ? 'Queueing...' : 'Queue render'}</span>
         </button>
 
         {error ? (

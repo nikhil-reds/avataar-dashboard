@@ -11,10 +11,11 @@ import {
   Database,
   FileUp,
   FileEdit,
-  Video,
   Brain,
   MessagesSquare,
   BookOpen,
+  UserRoundCog,
+  Video,
   X,
 } from 'lucide-react';
 
@@ -29,22 +30,15 @@ interface SidebarProps {
 }
 
 const TAB_ICONS: Record<TabId, React.ReactNode> = {
-  dash: <LayoutDashboard className="w-4 h-4" />,
-  logs: <Activity className="w-4 h-4" />,
-  conversations: <MessagesSquare className="w-4 h-4" />,
-  catalogue: <Database className="w-4 h-4" />,
-  ingest: <FileUp className="w-4 h-4" />,
-  manual: <FileEdit className="w-4 h-4" />,
-  knowledge: <BookOpen className="w-4 h-4" />,
-  avatar: <Video className="w-4 h-4" />,
-  memory: <Brain className="w-4 h-4" />,
   dash: <LayoutDashboard className="w-[18px] h-[18px]" />,
   logs: <Activity className="w-[18px] h-[18px]" />,
   conversations: <MessagesSquare className="w-[18px] h-[18px]" />,
   catalogue: <Database className="w-[18px] h-[18px]" />,
   ingest: <FileUp className="w-[18px] h-[18px]" />,
   manual: <FileEdit className="w-[18px] h-[18px]" />,
+  knowledge: <BookOpen className="w-[18px] h-[18px]" />,
   avatar: <Video className="w-[18px] h-[18px]" />,
+  persona: <UserRoundCog className="w-[18px] h-[18px]" />,
   memory: <Brain className="w-[18px] h-[18px]" />,
 };
 

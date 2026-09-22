@@ -317,3 +317,69 @@ export function parseKnowledgePatch(body: unknown): Parsed<KnowledgePatch> {
 
   return { ok: true, value: patch };
 }
+
+export const MAX_SOURCE_TITLE = 200;
+export const MAX_PASTED_TEXT = 500_000;
+export const MAX_SOURCES_PER_INDEX = 200;
+
+export interface TextSourceInput {
+  title: string;
+  body: string;
+}
+
+/** Pasted text arriving as JSON at POST /api/ingest/sources. */
+export function parseTextSource(body: unknown): Parsed<TextSourceInput> {
+  if (!isRecord(body)) return { ok: false, error: 'Body must be a JSON object' };
+
+  if (typeof body.body !== 'string' || !body.body.trim()) {
+    return { ok: false, error: 'body is required' };
+  }
+
+  if (body.body.length > MAX_PASTED_TEXT) {
+    return { ok: false, error: `body exceeds ${MAX_PASTED_TEXT} characters` };
+  }
+
+  const title = optionalString(body.title, 'title', MAX_SOURCE_TITLE);
+  if (!title.ok) return title;
+
+  return {
+    ok: true,
+    // Untitled text still needs a name to show in the queue and the index.
+    value: { title: title.value ?? 'Untitled note', body: body.body },
+  };
+}
+
+export interface IndexBuildInput {
+  sourceIds: string[];
+  label: string | null;
+}
+
+/** Build request for POST /api/ingest/index. */
+export function parseIndexBuild(body: unknown): Parsed<IndexBuildInput> {
+  if (!isRecord(body)) return { ok: false, error: 'Body must be a JSON object' };
+  if (!Array.isArray(body.sourceIds)) {
+    return { ok: false, error: '`sourceIds` must be an array' };
+  }
+
+  const sourceIds = body.sourceIds.filter(
+    (id): id is string => typeof id === 'string' && id.trim().length > 0
+  );
+
+  if (sourceIds.length === 0) {
+    return { ok: false, error: 'At least one source is required' };
+  }
+
+  if (sourceIds.length > MAX_SOURCES_PER_INDEX) {
+    return { ok: false, error: `At most ${MAX_SOURCES_PER_INDEX} sources per build` };
+  }
+
+  // A repeated id would index the same document twice and break the doc ordinals.
+  if (new Set(sourceIds).size !== sourceIds.length) {
+    return { ok: false, error: 'sourceIds contains duplicates' };
+  }
+
+  const label = optionalString(body.label, 'label', 120);
+  if (!label.ok) return label;
+
+  return { ok: true, value: { sourceIds, label: label.value } };
+}
