@@ -100,7 +100,7 @@ export function HomeExperience() {
               height={1372}
               priority
               className="pointer-events-none absolute max-w-none select-none"
-              style={{ left: '1.986%', top: '43.504%', width: '64.43%', height: '42.771%' }}
+              style={{ left: '1.986%', top: '43.504%', width: '64.43%', height: '58.5%' }}
             />
             <Image
               src="/figma/avtaar-home/noise-dark.png"
