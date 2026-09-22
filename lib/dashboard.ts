@@ -1,7 +1,9 @@
-import { LogKind, LogStatus, SkuState, SpeakerRole } from '@prisma/client';
+import { LogKind, LogStatus, SkuState, SpeakerRole } from '@/app/generated/prisma';
 import { prisma } from './db';
 import { latencyByKind } from './activity';
 import { llmBaseUrl, llmModel } from './llm';
+import { liveAvatarConfig } from './liveavatarConfig';
+import { redisStatus } from './redis';
 import type { LatencyItem, ServiceHealthItem, StatItem } from '../types';
 
 const GREEN = '#10b981';
@@ -143,7 +145,8 @@ export async function getServiceHealth(): Promise<ServiceHealthItem[]> {
     } catch {}
   }
 
-  const avatarConfigured = Boolean(process.env.LIVEAVATAR_API_KEY);
+  const avatarConfigured = Boolean(liveAvatarConfig().apiKey);
+  const redis = redisStatus();
 
   // The model runs locally, so "configured" is not a key check but a reachability check:
   // the container is either answering or it is not.
@@ -179,6 +182,26 @@ export async function getServiceHealth(): Promise<ServiceHealthItem[]> {
         : `ollama unreachable at ${llmBaseUrl()} — run: docker compose up -d ollama`,
       metric: answerErrors > 0 ? `${answerErrors} errors` : llmOk ? 'ready' : 'down',
       color: !llmOk ? RED : answerErrors > 0 ? AMBER : GREEN,
+    },
+    {
+      // Shared runtime state. Reported honestly: the in-memory fallback is not Redis
+      // and is never coloured as healthy, because two workers do not share it.
+      name: 'Redis',
+      note: redis.available
+        ? 'shared session state · distributed locking active'
+        : redis.configured
+          ? 'configured but unreachable · in-memory fallback, locks are process-local'
+          : 'not configured · in-memory fallback, locks are process-local',
+      metric: redis.available ? 'redis' : 'memory',
+      color: redis.available ? GREEN : redis.configured ? RED : AMBER,
+    },
+    {
+      // HeyGen owns the conversation LLM. These counters cover turn orchestration and
+      // any optional Gemini-backed feature, neither of which gates the avatar.
+      name: 'Turn orchestration',
+      note: `${answerCalls} turn events in 24h · HeyGen owns LLM + voice`,
+      metric: answerErrors > 0 ? `${answerErrors} errors` : 'ready',
+      color: answerErrors > 0 ? RED : GREEN,
     },
     {
       name: 'Transcript store',
@@ -222,17 +245,11 @@ export async function getLatencyRoutes(): Promise<LatencyItem[]> {
 
 /** Real counts for the sidebar badges. */
 export async function getNavBadges() {
-  try {
-    const [conversations, skusInReview, ingestJobs, renders] = await Promise.all([
-      prisma.shopperSession.count(),
-      prisma.productSku.count({ where: { state: SkuState.REVIEW } }),
-      prisma.ingestJob.count({ where: { state: { in: ['QUEUED', 'EXTRACTING'] } } }),
-      prisma.avatarRender.count({ where: { state: { in: ['QUEUED', 'RENDERING'] } } }),
-    ]);
+  const [conversations, skusInReview, ingestJobs] = await Promise.all([
+    prisma.shopperSession.count(),
+    prisma.productSku.count({ where: { state: SkuState.REVIEW } }),
+    prisma.ingestJob.count({ where: { state: { in: ['QUEUED', 'EXTRACTING'] } } }),
+  ]);
 
-    return { conversations, skusInReview, ingestJobs, renders };
-  } catch (err) {
-    console.warn('[getNavBadges] Database unreachable during badge fetch:', err);
-    return { conversations: 0, skusInReview: 0, ingestJobs: 0, renders: 0 };
-  }
+  return { conversations, skusInReview, ingestJobs };
 }

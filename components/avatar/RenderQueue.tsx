@@ -1,5 +1,5 @@
 import React from 'react';
-import { RenderState, type AvatarRender } from '@prisma/client';
+import { RenderState, type AvatarRender } from '@/app/generated/prisma';
 import { formatStamp } from '../../lib/conversationQuery';
 
 interface RenderQueueProps {

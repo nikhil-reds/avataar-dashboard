@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@/app/generated/prisma';
 
 // Next's dev server re-evaluates modules on every hot reload. Without this cache each
 // reload would open a fresh connection pool until Postgres starts refusing connections.

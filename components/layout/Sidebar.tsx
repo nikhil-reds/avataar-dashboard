@@ -11,10 +11,11 @@ import {
   Database,
   FileUp,
   FileEdit,
-  Video,
   Brain,
   MessagesSquare,
   BookOpen,
+  UserRoundCog,
+  Video,
   X,
 } from 'lucide-react';
 
@@ -37,6 +38,7 @@ const TAB_ICONS: Record<TabId, React.ReactNode> = {
   manual: <FileEdit className="w-[18px] h-[18px]" />,
   knowledge: <BookOpen className="w-[18px] h-[18px]" />,
   avatar: <Video className="w-[18px] h-[18px]" />,
+  persona: <UserRoundCog className="w-[18px] h-[18px]" />,
   memory: <Brain className="w-[18px] h-[18px]" />,
 };
 

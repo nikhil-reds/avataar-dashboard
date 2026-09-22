@@ -1,4 +1,4 @@
-import { Prisma, SessionStatus, SpeakerRole } from '@prisma/client';
+import { Prisma, SessionStatus, SpeakerRole } from '@/app/generated/prisma';
 import { prisma } from './db';
 import { DEFAULT_PER_PAGE, type ConversationQuery } from './conversationQuery';
 

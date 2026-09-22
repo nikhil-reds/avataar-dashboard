@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { LogKind, Prisma } from '@prisma/client';
+import { LogKind, Prisma } from '@/app/generated/prisma';
 import { recordActivity } from '@/lib/activity';
 import {
   deactivateKnowledge,
@@ -8,6 +8,7 @@ import {
   getKnowledge,
   updateKnowledge,
 } from '@/lib/knowledge';
+import { refreshAvatarContextCache } from '@/lib/avatarContextCache';
 import { parseKnowledgePatch } from '@/lib/validation';
 
 export const dynamic = 'force-dynamic';
@@ -57,6 +58,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       model: 'knowledge',
       detail: updated.isActive ? 'active' : 'inactive',
     });
+    void refreshAvatarContextCache().catch((err) => console.warn('[redis] context refresh failed', err));
 
     return NextResponse.json(updated);
   } catch (err) {
@@ -85,6 +87,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
         model: 'knowledge',
         detail: id,
       });
+      void refreshAvatarContextCache().catch((err) => console.warn('[redis] context refresh failed', err));
       return NextResponse.json({ ok: true, deleted: true });
     }
 
@@ -95,6 +98,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       model: 'knowledge',
       detail: deactivated.category,
     });
+    void refreshAvatarContextCache().catch((err) => console.warn('[redis] context refresh failed', err));
 
     return NextResponse.json(deactivated);
   } catch (err) {

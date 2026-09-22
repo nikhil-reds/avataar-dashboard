@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Inter:wght@400&family=JetBrains+Mono:wght@400;500;600&family=Montserrat:wght@400&display=swap');
 @import "tailwindcss";
 
 /* Drive Tailwind's `dark:` variant off <html data-theme="dark"> instead of the
@@ -29,6 +29,10 @@
 
   --scrollbar-thumb: rgba(100, 100, 100, 0.2);
   --scrollbar-thumb-hover: rgba(100, 100, 100, 0.4);
+
+  /* Stronger than the page scrollbar: inside a card the faint one reads as an edge. */
+  --panel-scrollbar-thumb: rgba(90, 90, 100, 0.38);
+  --panel-scrollbar-thumb-hover: rgba(90, 90, 100, 0.62);
 }
 
 [data-theme="dark"] {
@@ -52,6 +56,9 @@
 
   --scrollbar-thumb: rgba(200, 200, 200, 0.2);
   --scrollbar-thumb-hover: rgba(200, 200, 200, 0.4);
+
+  --panel-scrollbar-thumb: rgba(210, 210, 220, 0.34);
+  --panel-scrollbar-thumb-hover: rgba(210, 210, 220, 0.6);
 }
 
 @theme inline {
@@ -90,6 +97,36 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--scrollbar-thumb-hover);
+}
+
+/* Panels that scroll their own content, such as the page index. The gutter is always
+   reserved (`overflow-y: scroll` on the element) and the thumb is wider than the
+   app-wide 6px one, which is easy to miss inside a card. */
+.panel-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--panel-scrollbar-thumb) transparent;
+}
+
+.panel-scroll::-webkit-scrollbar {
+  width: 10px;
+}
+
+.panel-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.panel-scroll::-webkit-scrollbar-thumb {
+  background: var(--panel-scrollbar-thumb);
+  /* Padding-box clipping insets the thumb without shrinking the hit area, leaving a
+     6px bar in the 10px gutter. */
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  border-radius: 999px;
+}
+
+.panel-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--panel-scrollbar-thumb-hover);
+  background-clip: padding-box;
 }
 
 /* ---------------------------------------------------------------------------

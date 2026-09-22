@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 
 import { OG_BASE, OG_IMAGE, SITE_URL } from "@/lib/siteMetadata";
 
@@ -26,30 +27,30 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Trifast Global · AI Video Agent",
+    default: "Trifast Global · Video Agent",
     template: "%s · Trifast Global",
   },
   description:
-    "Trifast Global's AI video agent — ask a live avatar about any fastener: specifications, materials, stock and lead times.",
-  applicationName: "Trifast AI Video Agent",
+    "Trifast Global's video agent — ask a live avatar about any fastener: specifications, materials, stock and lead times.",
+  applicationName: "Trifast Video Agent",
   generator: "Next.js",
   keywords: [
     "Trifast",
     "fasteners",
-    "AI avatar",
+    "video agent",
     "product assistant",
     "live avatar",
   ],
   openGraph: {
     ...OG_BASE,
     url: "/",
-    title: "Trifast Global · AI Video Agent",
+    title: "Trifast Global · Video Agent",
     description:
       "Ask a live avatar about any fastener: specifications, materials, stock and lead times.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Trifast Global · AI Video Agent",
+    title: "Trifast Global · Video Agent",
     description:
       "Ask a live avatar about any fastener: specifications, materials, stock and lead times.",
     images: [OG_IMAGE.url],
@@ -90,7 +91,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <head>
-        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+        <Script id="theme-script" dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
       {/* `overflow-x-hidden` is a backstop, not the fix — any page that needs it is
           a bug. The responsive verification checks scrollWidth per route. */}

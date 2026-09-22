@@ -1,8 +1,14 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { fetchSessionToken, stopSessionOnServer, type AvatarBrain } from '@/lib/liveavatar';
+import {
+  fetchSessionToken,
+  reportTurnEvent,
+  stopSessionOnServer,
+  type AvatarBrain,
+} from '@/lib/liveavatar';
 import { MicOff, Loader2 } from 'lucide-react';
+import { TurnManager } from '@/lib/agent/turnManager';
 import { useConversationRecorder } from '@/lib/useConversationRecorder';
 import { describeMicFailure, type MicFailure } from '@/lib/microphone';
 import { ScreenSaver } from '@/components/avatar-stage/ScreenSaver';
@@ -16,10 +22,19 @@ interface ChatTurn {
 }
 
 const MAX_LOCAL_HISTORY = 20;
+const SELF_ECHO_SUPPRESSION_MS = 8_000;
 
 /** Spoken when the knowledge pipeline cannot be reached, so the avatar is never mute. */
 const FALLBACK_REPLY =
   'Sorry, I could not reach my knowledge base just then. Could you ask me that again?';
+
+function normalizeSpeech(text: string) {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
 /**
  * `connecting` covers everything between the click and the first video frame —
  * token mint, WebRTC negotiation and stream attach — because that whole stretch
@@ -28,6 +43,11 @@ const FALLBACK_REPLY =
 export type AvatarPhase = 'idle' | 'connecting' | 'live' | 'ended';
 
 export interface AvatarPanelProps {
+  autoStartKey?: number;
+  autoStopKey?: number;
+  className?: string;
+  showIdleScreen?: boolean;
+  showStageControl?: boolean;
   onPhaseChange?: (phase: AvatarPhase) => void;
   onUserTranscription?: (text: string) => void;
   onAvatarTranscription?: (text: string) => void;
@@ -35,6 +55,11 @@ export interface AvatarPanelProps {
 }
 
 export default function AvatarPanel({
+  autoStartKey,
+  autoStopKey,
+  className = '',
+  showIdleScreen = true,
+  showStageControl = true,
   onPhaseChange,
   onUserTranscription,
   onAvatarTranscription,
@@ -52,13 +77,19 @@ export default function AvatarPanel({
   const sessionRef      = useRef<LiveAvatarSession | null>(null);
   const sessionTokenRef = useRef<string | null>(null);
   const videoRef        = useRef<HTMLVideoElement>(null);
+  const audioRef        = useRef<HTMLAudioElement>(null);
   const keepAliveRef    = useRef<ReturnType<typeof setInterval> | null>(null);
   const startingRef     = useRef(false);
+  const turnsRef        = useRef<TurnManager | null>(null);
 
-  // Set from the token response. While it reads 'heygen' this component stays a pure
-  // renderer and HeyGen's agent answers, exactly as it did before the knowledge base.
+  // Set from the token response. In `redis` and `local` modes this app writes the words
+  // and LiveAvatar only speaks them; `heygen` lets LiveAvatar's own agent answer.
   const brainRef        = useRef<AvatarBrain>('local');
   const historyRef      = useRef<ChatTurn[]>([]);
+  const appSpeechRef    = useRef<{ text: string; until: number } | null>(null);
+  const listeningPausedForSpeechRef = useRef(false);
+  const handledAutoStartKeyRef = useRef<number | undefined>(undefined);
+  const handledAutoStopKeyRef = useRef<number | undefined>(undefined);
   // Increments per question. An answer whose ticket is stale — the shopper spoke again
   // while it was being generated — is discarded rather than spoken out of turn.
   const questionSeqRef  = useRef(0);
@@ -79,6 +110,7 @@ export default function AvatarPanel({
   useEffect(() => {
     return () => {
       if (keepAliveRef.current) clearInterval(keepAliveRef.current);
+      turnsRef.current?.reset();
       sessionRef.current?.stop().catch(() => {});
       if (sessionTokenRef.current) stopSessionOnServer(sessionTokenRef.current);
     };
@@ -86,19 +118,25 @@ export default function AvatarPanel({
 
   const unlockAudio = useCallback(() => {
     const video = videoRef.current;
-    if (!video) return;
-    video.muted = false;
-    video.play().catch(() => {});
-    setAudioLocked(false);
+    const audio = audioRef.current;
+    if (!video && !audio) return;
+
+    const playables = [video, audio].filter(Boolean) as HTMLMediaElement[];
+    for (const el of playables) {
+      el.muted = false;
+      el.volume = 1;
+    }
+
+    Promise.all(playables.map((el) => el.play()))
+      .then(() => setAudioLocked(false))
+      .catch(() => setAudioLocked(true));
   }, []);
 
   /**
    * Answers one spoken question from the knowledge base.
    *
-   * The chat API does the retrieval and the generation; this only carries the question
-   * there and hands the answer to the avatar to speak. `message()` is the SDK's
-   * "speak this as your response" command, so the avatar's own transcription event still
-   * fires and the conversation recorder stores the turn as normal.
+   * The chat API does the retrieval and answer selection; this only carries the question
+   * there and hands the final words to the avatar to speak literally.
    */
   const answerQuestion = useCallback(
     async (question: string) => {
@@ -145,7 +183,20 @@ export default function AvatarPanel({
       historyRef.current = nextHistory.slice(-MAX_LOCAL_HISTORY);
 
       try {
-        session.message(reply);
+        appSpeechRef.current = {
+          text: normalizeSpeech(reply),
+          until: Date.now() + SELF_ECHO_SUPPRESSION_MS,
+        };
+
+        // In app-brain modes the browser microphone can hear the avatar's speaker output.
+        // Pause LiveAvatar listening while we command the avatar to speak, otherwise the
+        // spoken answer is transcribed as a fresh shopper question and loops forever.
+        try {
+          session.stopListening();
+          listeningPausedForSpeechRef.current = true;
+        } catch {}
+
+        session.repeat(reply);
       } catch (err) {
         console.error('[avatar] could not speak the answer', err);
       }
@@ -207,18 +258,60 @@ export default function AvatarPanel({
       const session = new LiveAvatarSession(token);
       sessionRef.current = session;
 
+      /**
+       * Application-side turn tracking. HeyGen still owns the LLM and the voice —
+       * this only observes the conversation to manage turn state, interruption and
+       * latency. `speakBuffer` is opt-in because in FULL mode HeyGen answers every
+       * utterance itself, and a client filler on top of that has not been verified
+       * against a live session.
+       */
+      const turns = new TurnManager(
+        {
+          speakText: (text) => session.repeat(text),
+          speakAudio: (url) => session.repeatAudio(url),
+          interrupt: () => session.interrupt(),
+          report: reportTurnEvent,
+        },
+        { speakBuffer: process.env.NEXT_PUBLIC_AVATAR_BUFFER === 'on' }
+      );
+      turnsRef.current = turns;
+
       session.on(SessionEvent.SESSION_STREAM_READY, () => {
         const video = videoRef.current;
+        const audio = audioRef.current;
         if (!video) return;
         session.attach(video);
+
+        const remoteAudioTrack = (session as unknown as {
+          _remoteAudioTrack?: { attach: (element: HTMLMediaElement) => unknown };
+        })._remoteAudioTrack;
+        if (audio && remoteAudioTrack) remoteAudioTrack.attach(audio);
+
         video.muted = false;
-        video.play().catch(() => {
-          video.muted = true;
-          setAudioLocked(true);
-        });
+        video.volume = 1;
+        if (audio) {
+          audio.muted = false;
+          audio.volume = 1;
+        }
+
+        const playables = [video, audio].filter(Boolean) as HTMLMediaElement[];
+        Promise.all(playables.map((el) => el.play()))
+          .then(() => setAudioLocked(false))
+          .catch(() => {
+            video.muted = true;
+            if (audio) audio.muted = true;
+            setAudioLocked(true);
+          });
         // The skeleton is held until here rather than until `start()` resolves,
         // so it is never replaced by an empty video element.
         setPhase('live');
+
+        if (brainRef.current === 'redis') {
+          window.setTimeout(() => {
+            if (sessionRef.current !== session) return;
+            void answerQuestion('hello');
+          }, 600);
+        }
       });
 
       session.on(SessionEvent.SESSION_DISCONNECTED, () => {
@@ -227,18 +320,57 @@ export default function AvatarPanel({
         setPhase('ended');
       });
 
-      session.on(AgentEventsEnum.AVATAR_SPEAK_STARTED, () => setIsSpeaking(true));
-      session.on(AgentEventsEnum.AVATAR_SPEAK_ENDED,   () => setIsSpeaking(false));
+      session.on(AgentEventsEnum.AVATAR_SPEAK_STARTED, () => {
+        setIsSpeaking(true);
+        turns.onAvatarSpeakStarted();
+      });
+      session.on(AgentEventsEnum.AVATAR_SPEAK_ENDED, () => {
+        setIsSpeaking(false);
+        turns.onAvatarSpeakEnded();
+        if (brainRef.current !== 'heygen' && listeningPausedForSpeechRef.current) {
+          listeningPausedForSpeechRef.current = false;
+          try {
+            session.startListening();
+          } catch (err) {
+            console.warn('[LiveAvatar] could not resume listening after app speech', err);
+          }
+        }
+      });
+
+      // Barge-in. The manager only issues avatar.interrupt when the avatar is actually
+      // speaking, so an ordinary turn boundary does not fire a needless command.
+      session.on(AgentEventsEnum.USER_SPEAK_STARTED, () => turns.onUserSpeakStarted());
+
+      // Partials are UI-only: no turn, no retrieval, no network.
+      session.on(AgentEventsEnum.USER_TRANSCRIPTION_CHUNK, (e) =>
+        turns.onPartialTranscript(e.text)
+      );
 
       // Only the finalized transcription events are persisted. The *_CHUNK variants are
       // streaming partials and would write a row per fragment.
       session.on(AgentEventsEnum.USER_TRANSCRIPTION, (e) => {
+        const normalized = normalizeSpeech(e.text);
+        const appSpeech = appSpeechRef.current;
+        if (
+          brainRef.current !== 'heygen' &&
+          appSpeech &&
+          Date.now() <= appSpeech.until &&
+          normalized &&
+          normalized === appSpeech.text
+        ) {
+          recorder.recordAvatar(`avatar-echo-${e.event_id}`, e.text);
+          onAvatarTranscription?.(e.text);
+          return;
+        }
+
+        // Opens the turn and fires the buffer fast path before any network call.
+        turns.onFinalTranscript(e.text, e.event_id);
         recorder.recordShopper(e.event_id, e.text);
         onUserTranscription?.(e.text);
 
-        // This is the knowledge base entering the conversation: the finalized question
-        // goes to the chat API, which grounds the answer in Postgres.
-        if (brainRef.current === 'local') void answerQuestion(e.text);
+        // This is the app brain entering the conversation: Redis/local modes generate
+        // the short content, then LiveAvatar speaks it with the configured voice.
+        if (brainRef.current !== 'heygen') void answerQuestion(e.text);
       });
       session.on(AgentEventsEnum.AVATAR_TRANSCRIPTION, (e) => {
         recorder.recordAvatar(e.event_id, e.text);
@@ -257,6 +389,7 @@ export default function AvatarPanel({
       // Begins buffering immediately, so the avatar's opening line is captured while the
       // session record is still being created.
       void recorder.start(session.sessionId);
+      turns.attachSession(session.sessionId);
       await startVoiceChat(session);
 
       onSessionReady?.((text: string) => session.message(text));
@@ -264,6 +397,7 @@ export default function AvatarPanel({
       setError(err instanceof Error ? err.message : 'Failed to start session');
       sessionRef.current = null;
       sessionTokenRef.current = null;
+      turnsRef.current = null;
       setPhase('idle');
     } finally {
       startingRef.current = false;
@@ -274,21 +408,41 @@ export default function AvatarPanel({
     if (keepAliveRef.current) clearInterval(keepAliveRef.current);
     // Invalidates any answer still in flight, so it cannot be spoken into a dead session.
     questionSeqRef.current++;
+    turnsRef.current?.reset();
+    appSpeechRef.current = null;
+    listeningPausedForSpeechRef.current = false;
     await recorder.end();
     try { await sessionRef.current?.stop(); } catch {}
     if (sessionTokenRef.current) stopSessionOnServer(sessionTokenRef.current);
     sessionRef.current = null;
     sessionTokenRef.current = null;
     historyRef.current = [];
+    turnsRef.current = null;
     setIsSpeaking(false);
     setAudioLocked(false);
     setMicFailure(null);
     setPhase('ended');
   }, [recorder]);
 
+  useEffect(() => {
+    if (autoStartKey === undefined) return;
+    if (handledAutoStartKeyRef.current === autoStartKey) return;
+    if (phase !== 'idle' && phase !== 'ended') return;
+    handledAutoStartKeyRef.current = autoStartKey;
+    queueMicrotask(() => void handleStart());
+  }, [autoStartKey, phase, handleStart]);
+
+  useEffect(() => {
+    if (autoStopKey === undefined) return;
+    if (handledAutoStopKeyRef.current === autoStopKey) return;
+    if (phase !== 'connecting' && phase !== 'live') return;
+    handledAutoStopKeyRef.current = autoStopKey;
+    queueMicrotask(() => void handleEnd());
+  }, [autoStopKey, phase, handleEnd]);
+
   return (
-    <section className="relative w-full h-full overflow-hidden bg-bg-primary">
-      {(phase === 'idle' || phase === 'ended') && <ScreenSaver />}
+    <section className={`relative w-full h-full overflow-hidden bg-bg-primary ${className}`}>
+      {showIdleScreen && (phase === 'idle' || phase === 'ended') && <ScreenSaver />}
 
       {/* The avatar is a portrait figure, so it gets a portrait frame rather than
           being stretched across the viewport. `w-auto` + `aspect-[9/16]` sizes it
@@ -312,6 +466,7 @@ export default function AvatarPanel({
             autoPlay
             playsInline
           />
+          <audio ref={audioRef} autoPlay playsInline className="hidden" />
 
           {/* Tap-to-unlock audio overlay */}
           {audioLocked && (
@@ -388,22 +543,24 @@ export default function AvatarPanel({
 
       {/* Single control for the whole stage, parked in the bottom-right corner so it
           stays in one place across every phase. */}
-      <div
-        className="absolute z-30 flex items-center gap-3"
-        style={{
-          // Keeps the control clear of the iOS home indicator and, in landscape, the
-          // notch cut-out. Falls back to the plain 1.5rem where insets are 0.
-          bottom: 'max(1.5rem, env(safe-area-inset-bottom))',
-          right: 'max(1.5rem, env(safe-area-inset-right))',
-        }}
-      >
-        {error && (
-          <p className="max-w-60 text-right text-[12px] leading-snug font-medium text-[#b91c1c]">
-            {error}
-          </p>
-        )}
-        <StageControl phase={phase} onConnect={handleStart} onDisconnect={handleEnd} />
-      </div>
+      {showStageControl && (
+        <div
+          className="absolute z-30 flex items-center gap-3"
+          style={{
+            // Keeps the control clear of the iOS home indicator and, in landscape, the
+            // notch cut-out. Falls back to the plain 1.5rem where insets are 0.
+            bottom: 'max(1.5rem, env(safe-area-inset-bottom))',
+            right: 'max(1.5rem, env(safe-area-inset-right))',
+          }}
+        >
+          {error && (
+            <p className="max-w-60 text-right text-[12px] leading-snug font-medium text-[#b91c1c]">
+              {error}
+            </p>
+          )}
+          <StageControl phase={phase} onConnect={handleStart} onDisconnect={handleEnd} />
+        </div>
+      )}
     </section>
   );
 }

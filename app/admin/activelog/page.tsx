@@ -1,18 +1,16 @@
 import { Header } from '@/components/layout/Header';
 import { LogFilters } from '@/components/logs/LogFilters';
 import { LogTable } from '@/components/logs/LogTable';
+import { LogPagination } from '@/components/logs/LogPagination';
 import { TraceDetail } from '@/components/logs/TraceDetail';
 import { BackToList } from '@/components/layout/BackToList';
 import { TAB_BY_ID, tabMetadata } from '@/data/navigation';
-import { listActivity, LOG_KIND_FILTERS, type LogKindFilter } from '@/lib/activity';
+import { listActivity } from '@/lib/activity';
+import { buildLogSearch, isFiltered, parseLogQuery } from '@/lib/logQuery';
 
 export const metadata = tabMetadata('logs');
 
 export const dynamic = 'force-dynamic';
-
-function single(value: string | string[] | undefined): string {
-  return (Array.isArray(value) ? value[0] : value)?.trim() ?? '';
-}
 
 export default async function ActiveLogPage({
   searchParams,
@@ -20,23 +18,19 @@ export default async function ActiveLogPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const raw = await searchParams;
+  const query = parseLogQuery(raw);
+  const selectedId = ((Array.isArray(raw.selected) ? raw.selected[0] : raw.selected) ?? '').trim();
 
-  const kindRaw = single(raw.kind) as LogKindFilter;
-  const kind = LOG_KIND_FILTERS.includes(kindRaw) ? kindRaw : 'all';
-  const q = single(raw.q).slice(0, 200);
-  const selectedId = single(raw.selected) || null;
+  const { rows, total, matching, pageCount } = await listActivity(query);
 
-  const records = await listActivity({ kind, q, limit: 200 });
+  const filtered = isFiltered(query);
 
   // Below `md` the page shows the list or the trace, not both. Keyed off the raw
   // param rather than `selected`, which falls back to the first row.
   const hasSelection = Boolean(selectedId);
-  const backParams = new URLSearchParams();
-  if (kind !== 'all') backParams.set('kind', kind);
-  if (q) backParams.set('q', q);
-  const backHref = TAB_BY_ID.logs.href + (backParams.size ? '?' + backParams : '');
+  const backHref = TAB_BY_ID.logs.href + buildLogSearch(query, { selected: null });
 
-  const selected = records.find((record) => record.id === selectedId) ?? records[0] ?? null;
+  const selected = rows.find((record) => record.id === selectedId) ?? rows[0] ?? null;
 
   return (
     <>
@@ -51,15 +45,27 @@ export default async function ActiveLogPage({
           </span>
         </div>
         <div className="flex flex-col gap-4">
-          <LogFilters kind={kind} searchQuery={q} />
+          <LogFilters
+            query={query}
+            matching={matching}
+            total={total}
+            filtered={filtered}
+          />
 
           <div className="grid grid-cols-1 xl:grid-cols-[1.55fr_1fr] gap-6 items-start">
-            <div className={hasSelection ? 'hidden md:block' : ''}>
+            <div className={`flex flex-col gap-3 ${hasSelection ? 'hidden md:flex' : ''}`}>
               <LogTable
-                records={records}
+                records={rows}
                 selectedId={selected?.id ?? null}
-                kind={kind}
-                searchQuery={q}
+                query={query}
+                filtered={filtered}
+              />
+
+              <LogPagination
+                query={query}
+                pageCount={pageCount}
+                matching={matching}
+                selectedId={selectedId || null}
               />
             </div>
 
@@ -73,4 +79,3 @@ export default async function ActiveLogPage({
     </>
   );
 }
-

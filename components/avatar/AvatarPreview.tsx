@@ -17,7 +17,7 @@ export const AvatarPreview: React.FC<AvatarPreviewProps> = ({ voiceLabel }) => {
         <div className="font-mono text-[11px] text-zinc-700 dark:text-zinc-300 bg-white/90 dark:bg-zinc-900/90 border border-zinc-200/80 dark:border-zinc-700 rounded-lg p-2 text-center shadow-xs backdrop-blur-sm">
           full-body avatar still
           <br />
-          1080 × 1920 · HeyGen render
+          1080 x 1920 · HeyGen render
         </div>
       </div>
 

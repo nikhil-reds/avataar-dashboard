@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { LogKind, SessionStatus, SpeakerRole } from '@prisma/client';
+import { LogKind, SessionStatus, SpeakerRole } from '@/app/generated/prisma';
 import { prisma } from '@/lib/db';
 import { recordActivity } from '@/lib/activity';
 import { deriveTitle } from '@/lib/conversationQuery';

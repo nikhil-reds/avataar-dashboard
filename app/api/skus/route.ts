@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
-import { LogKind, LogStatus, Prisma, SkuState } from '@prisma/client';
+import { LogKind, LogStatus, Prisma, SkuState } from '@/app/generated/prisma';
 import { prisma } from '@/lib/db';
 import { recordActivity } from '@/lib/activity';
+import { refreshAvatarContextCache } from '@/lib/avatarContextCache';
 import { parseSkuInput } from '@/lib/validation';
+import { KEYS, del as cacheDel } from '@/lib/redis';
 
 export async function POST(request: Request) {
   let body: unknown;
@@ -42,7 +44,9 @@ export async function POST(request: Request) {
       kind: LogKind.INGEST,
       model: 'manual',
       detail: created.name,
-    });
+      });
+    await cacheDel(KEYS.catalogueIndex());
+    void refreshAvatarContextCache().catch((err) => console.warn('[redis] context refresh failed', err));
 
     return NextResponse.json(created, { status: 201 });
   } catch (err) {

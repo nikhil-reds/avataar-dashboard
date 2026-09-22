@@ -25,7 +25,7 @@ export const TraceDetail: React.FC<TraceDetailProps> = ({ record }) => {
     { k: 'recorded', v: formatStamp(record.createdAt) },
     { k: 'kind', v: record.kind.toLowerCase() },
     { k: 'status', v: record.status.toLowerCase() },
-    { k: 'model', v: record.model ?? '—' },
+    { k: 'source', v: record.model ?? '—' },
     { k: 'latency', v: record.latencyMs === null ? '—' : record.latencyMs + 'ms' },
     {
       k: 'tokens',

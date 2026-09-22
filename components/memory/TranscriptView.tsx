@@ -1,5 +1,5 @@
 import React from 'react';
-import { SpeakerRole } from '@prisma/client';
+import { SpeakerRole } from '@/app/generated/prisma';
 import { formatStamp } from '../../lib/conversationQuery';
 import type { ConversationDetail } from '../../lib/conversations';
 import { ForgetSessionButton } from './ForgetSessionButton';
