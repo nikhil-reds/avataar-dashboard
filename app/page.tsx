@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import AvatarPanel from "@/components/AvatarPanel";
+import { HomeExperience } from "@/components/home/HomeExperience";
 import { OG_BASE } from "@/lib/siteMetadata";
 
 // A server component so it can export metadata — the interactive part lives in
@@ -21,9 +21,5 @@ export const metadata: Metadata = {
 };
 
 export default function VideoAgent() {
-  return (
-    <div className="h-dvh w-full overflow-hidden bg-bg-primary text-text-primary">
-      <AvatarPanel />
-    </div>
-  );
+  return <HomeExperience />;
 }
