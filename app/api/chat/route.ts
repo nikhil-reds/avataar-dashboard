@@ -3,19 +3,17 @@ import { LogKind } from '@/app/generated/prisma';
 import { recordActivity } from '@/lib/activity';
 import { answerFromRedisContext } from '@/lib/redisAvatarAnswer';
 
-/**
- * The avatar's brain.
- *
- * Fast avatar brain.
- *
- * Live conversations read one compact Redis context snapshot instead of querying
- * Postgres and generating with a local model on every turn. Postgres remains the admin
- * source of truth; Redis is the low-latency serving layer for persona, opening lines,
- * knowledge and catalogue facts.
- */
+/** Legacy source lookup. HeyGen handles live conversation answers. */
 
 const MAX_MESSAGE_CHARS = 2_000;
 
+export const dynamic = 'force-dynamic';
+
+export async function POST(request: Request) {
+  let body: Record<string, unknown>;
+  try {
+    body = await request.json();
+/* progress step 1 */
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
