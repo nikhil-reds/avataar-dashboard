@@ -58,4 +58,19 @@ export function PublishToAvatar({ disabled = false }: { disabled?: boolean }) {
   return <>
     <div className="flex flex-col gap-1">
     <button type="button" onClick={publish} disabled={disabled || publishing} aria-busy={publishing}
-/* step 4 initialization */
+      className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#0085FF] px-3 py-2 text-xs font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0085FF]">
+      {publishing ? <Loader2 className="size-4 animate-spin motion-reduce:animate-none" /> : <UploadCloud className="size-4" />}
+      {publishing ? 'Publishing…' : 'Publish to avatar'}
+    </button>
+    <span className="text-[10px] text-zinc-500 dark:text-zinc-400" title="Tracks saved persona, intro, instructions, catalogue and ingest changes. Save edits before publishing." role="status">{publishing ? 'Sending saved content…' : status}</span>
+    </div>
+    {notice && createPortal(<div role={notice.failed ? 'alert' : 'status'} className="fixed bottom-6 right-6 z-[100] flex max-w-md items-start gap-3 rounded-xl border border-[#383838] bg-[#12141D] p-4 text-sm text-white shadow-xl max-sm:left-6">
+      {notice.failed ? <AlertCircle aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-[#A1A1A1]" /> : <CheckCircle2 aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-[#0085FF]" />}
+      <div>
+        <p className="mb-1 font-semibold">{notice.failed ? 'Publishing failed' : 'Avatar updated successfully'}</p>
+        <p className="text-xs leading-5 text-[#E0E0E0]">{notice.text}</p>
+      </div>
+      <button type="button" aria-label="Dismiss notification" onClick={() => setNotice(null)} className="shrink-0 rounded p-1 hover:bg-[#383838]"><X className="size-4" /></button>
+    </div>, document.body)}
+  </>;
+}
