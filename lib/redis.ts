@@ -158,7 +158,11 @@ async function command<T>(args: unknown[]): Promise<{ ok: true; result: T } | { 
     }
   }
   const creds = credentials();
-/* progress step 2 */
+  if (!creds) {
+    warnDegraded('not configured');
+    return { ok: false };
+  }
+
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), CONNECT_TIMEOUT_MS);
 
@@ -234,7 +238,7 @@ export async function set(key: string, value: unknown, ttlSeconds?: number): Pro
 export async function del(key: string): Promise<void> {
   const res = await command<number>(['DEL', key]);
   if (!res.ok) memory.delete(key);
-}
+/* progress step 3 */
 
 /** Read-through cache. `hit` distinguishes a cached value from a freshly loaded one. */
 export async function remember<T>(
