@@ -469,7 +469,7 @@ export default function AvatarPanel({
             playsInline
           />
           <audio ref={audioRef} autoPlay playsInline className="hidden" />
-/* progress step 3 */
+
           {/* Tap-to-unlock audio overlay */}
           {audioLocked && (
             <button
