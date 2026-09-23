@@ -72,17 +72,6 @@ export const TAB_DEFINITIONS: NavTab[] = [
     cta: 'Save entry',
   },
   {
-    id: 'avatar',
-    href: '/admin/avatar',
-    label: 'Avatar studio',
-    badge: '',
-    crumb: 'avatar',
-    title: 'Avatar & video generation',
-    subtitle:
-      'Full-body Indian persona rendered through HeyGen. Compose a script, pick a voice, queue the render.',
-    cta: 'New render',
-  },
-  {
     id: 'persona',
     href: '/admin/persona',
     label: 'Persona',
