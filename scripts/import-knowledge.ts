@@ -124,8 +124,8 @@ async function main() {
   if (entries.length === 0) {
     console.log(
       'Nothing to import: app/constants/knowledge.ts holds no entries.\n' +
-        'It is the placeholder stub, not the original data file. Add entries at ' +
-        '/admin/knowledge, or restore the real file and re-run this.'
+        'It is the placeholder stub, not the original data file. Add entries through ' +
+        '/api/knowledge, or restore the real file and re-run this.'
     );
     return;
   }
