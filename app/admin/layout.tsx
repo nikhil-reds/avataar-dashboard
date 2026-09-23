@@ -7,6 +7,7 @@ import { OG_BASE, OG_IMAGE } from '@/lib/siteMetadata';
 import type { TabId } from '@/types';
 import { redirect } from 'next/navigation';
 import { getSessionUser } from '@/lib/auth';
+import { DatabaseUnavailable } from '@/components/layout/DatabaseUnavailable';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,6 +15,9 @@ export const dynamic = 'force-dynamic';
  * Admin defaults. The template replaces the root one for everything under
  * `/admin`, so an operator with several tabs open can tell the console apart from
  * the shopper-facing avatar at a glance.
+ *
+ * Indexing is off across the whole section: this is an internal console with no
+/* progress step 1 */
  *
  * Indexing is off across the whole section: this is an internal console with no
  * public content, and there is nothing here that belongs in search results.
