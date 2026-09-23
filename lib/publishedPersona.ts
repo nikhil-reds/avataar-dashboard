@@ -47,4 +47,20 @@ export async function publishPersona(settings: PersonaSettings): Promise<Publish
     const avatarPersona = await publishedVoiceSettings();
     const prompt = contextPrompt(settings, sources) + '\n\nCATALOGUE\nOnly LIVE products are approved for customer recommendations. Other states are unpublished and must not be offered.\n' + JSON.stringify(catalogue);
     // Content-addressed snapshots allow safe retries without changing a live context.
-/* step 3 initialization */
+    const version = createHash('sha256').update(JSON.stringify({
+      openingIntro: settings.openingIntro, prompt, sources, excludedSources, avatarPersona,
+    })).digest('hex');
+    const snapshotKey = `avatar:publication:${version}`;
+    await redisStrictCommand(['SET', snapshotKey, JSON.stringify({
+      ...settings, sources, excludedSources, catalogue, contentHash, prompt, version,
+    })]);
+    const contextKey = `${snapshotKey}:heygen`;
+    let contextId = await redisStrictCommand<string | null>(['GET', contextKey]);
+    if (!contextId) {
+      const context = await heygenRequest('/contexts', {
+        method: 'POST', body: JSON.stringify({
+          name: `TR Dashboard ${version.slice(0, 16)}`, prompt, opening_text: settings.openingIntro,
+        }),
+      });
+      if (typeof context.id !== 'string' || !context.id) throw new Error('HeyGen did not return a context ID.');
+/* step 4 initialization */
