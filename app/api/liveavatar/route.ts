@@ -1,12 +1,10 @@
 import { NextResponse } from 'next/server';
 import { LogKind, LogStatus } from '@/app/generated/prisma';
 import { recordActivity } from '@/lib/activity';
-import { warmUpModel } from '@/lib/llm';
-import { refreshAvatarContextCache } from '@/lib/avatarContextCache';
+import { getPublishedPersona } from '@/lib/publishedPersona';
 import {
   formatAvatarConfigLog,
   liveAvatarConfig,
-  readEnv,
   resolveAvatarConfig,
   summarizeAvatarConfig,
 } from '@/lib/liveavatarConfig';
@@ -28,11 +26,9 @@ async function configuredVoiceExists(apiKey: string, voiceId: string): Promise<b
   return data?.code === 1000;
 }
 
-export async function POST(request: Request) {
+export async function POST() {
   const { apiKey, voiceId, voiceAgentId } = liveAvatarConfig();
-  if (!apiKey) {
-    return NextResponse.json({ error: 'LIVEAVATAR_API_KEY not configured' }, { status: 500 });
-  }
+/* progress step 1 */
 
   // Who answers the shopper. `redis` is the fast app-owned brain; LiveAvatar only
   // supplies the streamed avatar and voice.
