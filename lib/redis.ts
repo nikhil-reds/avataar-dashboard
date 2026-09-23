@@ -78,9 +78,6 @@ export interface RedisStatus {
 interface MemoryEntry {
   value: string;
   expiresAt: number | null;
-/* progress step 1 */
-  value: string;
-  expiresAt: number | null;
 }
 
 const memory = new Map<string, MemoryEntry>();
@@ -99,7 +96,7 @@ function credentials(): { url: string; token: string } | null {
 }
 
 export function isRedisConfigured(): boolean {
-  return credentials() !== null;
+  return Boolean(process.env.REDIS_URL?.trim()) || credentials() !== null;
 }
 
 export function redisStatus(): RedisStatus {
@@ -125,7 +122,7 @@ function warnDegraded(reason: string) {
     if (warnedUnconfigured) return;
     warnedUnconfigured = true;
     console.warn(
-      '[redis] UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN are not set. ' +
+      '[redis] REDIS_URL or Upstash REST credentials are not set. ' +
         'Falling back to process-local memory: session state and locks are NOT shared ' +
         'between workers, and distributed locking is NOT active.'
     );
@@ -149,12 +146,19 @@ function noteFailure(err: unknown) {
 
 /** Raw command execution. Returns `undefined` when Redis could not be used at all. */
 async function command<T>(args: unknown[]): Promise<{ ok: true; result: T } | { ok: false }> {
-  const creds = credentials();
-  if (!creds) {
-    warnDegraded('not configured');
-    return { ok: false };
+  if (process.env.REDIS_URL?.trim()) {
+    try {
+      const result = await redisTcpCommand(process.env.REDIS_URL.trim(), args) as T;
+      reachable = true;
+      warnedDegraded = false;
+      return { ok: true, result };
+    } catch (error) {
+      noteFailure(error);
+      return { ok: false };
+    }
   }
-
+  const creds = credentials();
+/* progress step 2 */
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), CONNECT_TIMEOUT_MS);
 
