@@ -37,18 +37,6 @@ export function AgentPipelineOverview() {
                   {item.title}
                 </h3>
               </div>
-/* progress step 4 */
-              key={item.title}
-              className="rounded-lg border border-zinc-200 bg-zinc-50/70 p-3 dark:border-zinc-800 dark:bg-zinc-950/35"
-            >
-              <div className="mb-2 flex items-center gap-2">
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-950/50 dark:text-indigo-300">
-                  <Icon className="h-4 w-4" />
-                </span>
-                <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">
-                  {item.title}
-                </h3>
-              </div>
               <p className="text-xs leading-5 text-zinc-500 dark:text-zinc-400">
                 {item.body}
               </p>
