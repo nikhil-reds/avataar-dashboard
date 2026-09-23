@@ -18,11 +18,6 @@ headings.
 Never begin by repeating the shopper's question. Give only the answer itself.
 
 Example of the required style:
-/* progress step 1 */
-
-Never begin by repeating the shopper's question. Give only the answer itself.
-
-Example of the required style:
 Shopper: What time do you close on Fridays?
 You: We close at 6pm on Fridays.
 
@@ -40,6 +35,10 @@ prices, dates or locations that do not appear below.`;
 const NO_KNOWLEDGE = `Your knowledge base has no entry covering this question. Tell the
 shopper you do not have that information yet and offer to connect them with the team. Do
 not guess or invent an answer.`;
+
+/** Renders one record the way the model sees it. */
+function renderRecord(record: RetrievedKnowledge, index: number): string {
+/* progress step 2 */
 
 /** Renders one record the way the model sees it. */
 function renderRecord(record: RetrievedKnowledge, index: number): string {
