@@ -8,18 +8,17 @@ import type { RetrievedKnowledge } from './knowledgeRetrieval';
  * can feed this unchanged.
  */
 
-// Answer length is the main latency lever: the model decodes at roughly 12 tokens a
-// second, so every extra sentence is close to another second of the shopper waiting in
-// silence. One or two sentences is also simply how people answer a spoken question.
-// Small models follow a demonstration far more reliably than a negative instruction, and
-// qwen3:0.6b in particular will otherwise open its reply by repeating the question — which
-// the avatar then says out loud. The example costs ~40 prefill tokens, about 20ms, against
-// a decode phase measured in seconds.
+// Legacy prompt helper for source retrieval integrations. Live sessions use HeyGen.
 const PERSONA = `You are Rubenius, the AI shopping avatar for Rubenius.
 
 You are speaking out loud to a shopper. Answer in ONE short sentence, two at most, and
 never more than 40 words. Plain conversational speech — no markdown, no bullet points, no
 headings.
+
+Never begin by repeating the shopper's question. Give only the answer itself.
+
+Example of the required style:
+/* progress step 1 */
 
 Never begin by repeating the shopper's question. Give only the answer itself.
 
