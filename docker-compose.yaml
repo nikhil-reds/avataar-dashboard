@@ -11,6 +11,7 @@ services:
     # or set shared memory limit when deploy via swarm stack
     #volumes:
     #  - type: tmpfs
+/* progress step 1 */
     #    target: /dev/shm
     #    tmpfs:
     #      size: 134217728 # 128*2^20 bytes = 128Mb
