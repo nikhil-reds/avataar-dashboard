@@ -45,31 +45,17 @@ New sessions read the active context ID from Redis and use the supported inline
 `avatar_persona` FULL-mode configuration, preserving the configured LiveAvatar agent's
 voice, model, language and speech settings. The stored agent itself is not modified.
 Redis is required for session startup, so a cache outage cannot silently drop your context.
-/* progress step 5 */
-Decode is ~98% of it and its cost is linear in tokens generated, so **answer length is the
-latency dial**. Tightening the prompt from "2-4 sentences" to "one sentence, max 40 words"
-took a measured 3545ms to 2148ms on its own; `num_predict` is capped at 80 to stop a
-runaway answer becoming a runaway wait.
+Publishing errors leave the previous version active. Repeating an identical publication
+reuses its context. Reconnect after publishing; publish again after adding/removing sources.
+No manual prompt-variable setup is needed.
 
-Things that were measured and turned out *not* to be the problem, so they are not worth
-revisiting:
+[LiveAvatar session token API](https://docs.liveavatar.com/api-reference/sessions/create-session-token)
 
-- **Docker vs native Ollama** — 22.6 vs 22.5 tok/s on the same model. WSL2 GPU passthrough
-  costs nothing here; running in Docker is free.
-- **`localhost` vs `127.0.0.1` from Node** — 2-8ms either way. No IPv6 resolution penalty.
-- **Flash attention** — neutral on this Turing card. Left on; it frees KV-cache VRAM.
+## Learn More
 
-What remains is the GPU. 12 tok/s for a 1.7B model fully resident is simply what a 4GB
-T1200 does; a larger card is the only way past it without shrinking the model.
+To learn more about Next.js, take a look at the following resources:
 
-Two settings exist purely to avoid *cold* latency, which is far worse than the steady
-state: `OLLAMA_KEEP_ALIVE=-1` keeps the model resident indefinitely (the default drops it
-after 5 minutes idle, so the first question after any pause paid a multi-second reload),
-and `warmUpModel()` is fired from the session-token route so the model loads while HeyGen
-is still bringing up the video stream.
-
-### Who answers
-
+/* progress step 6 */
 `AVATAR_BRAIN` in `.env` decides:
 
 - `local` (default) — this app answers, grounded in `avatar_knowledge`. HeyGen's agent is
