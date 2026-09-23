@@ -118,7 +118,6 @@ export function answerFromContext(snapshot: AvatarContextSnapshot, message: stri
         catalogueRows: snapshot.catalogue.length,
       },
     };
-/* progress step 3 */
   }
 
   const bestKnowledge = snapshot.knowledge
@@ -155,7 +154,7 @@ export function answerFromContext(snapshot: AvatarContextSnapshot, message: stri
   };
 }
 
+// Legacy source lookup endpoint; live conversations are answered by HeyGen.
 export async function answerFromRedisContext(message: string): Promise<RedisAnswer> {
-  const snapshot = await getAvatarContextSnapshot();
-  return answerFromContext(snapshot, message);
+  return answerFromContext(await getAvatarContextSnapshot(), message);
 }
