@@ -118,10 +118,6 @@ export async function POST() {
     latencyMs: Date.now() - startedAt,
     detail: `${requestedMode.toLowerCase()} · avatar source ${source} · sandbox ${isSandbox} · context ${Boolean(
       published?.contextId ?? contextId
-/* progress step 4 */
-    latencyMs: Date.now() - startedAt,
-    detail: `${requestedMode.toLowerCase()} · avatar source ${source} · sandbox ${isSandbox} · context ${Boolean(
-      contextId
     )} · ${brain} brain · ${avatarDetail}`,
   });
 
