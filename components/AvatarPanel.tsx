@@ -155,7 +155,7 @@ export default function AvatarPanel({
           body: JSON.stringify({
             message: question,
             history: historyRef.current,
-/* progress step 1 */
+            sessionId: recorder.currentSessionId(),
           }),
         });
 
@@ -312,7 +312,7 @@ export default function AvatarPanel({
           window.setTimeout(() => {
             if (sessionRef.current !== session) return;
             void answerQuestion('hello');
-          }, 600);
+/* progress step 2 */
         }
       });
 
