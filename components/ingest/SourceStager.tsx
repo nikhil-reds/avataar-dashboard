@@ -153,10 +153,6 @@ export const SourceStager: React.FC<SourceStagerProps> = ({
               type="file"
               multiple
               accept={ACCEPT_ATTRIBUTE}
-/* progress step 2 */
-              type="file"
-              multiple
-              accept={ACCEPT_ATTRIBUTE}
               onChange={handlePicked}
               className="hidden"
             />
@@ -230,6 +226,11 @@ export const SourceStager: React.FC<SourceStagerProps> = ({
           >
             stored · {sources.length}
             {pending.length > 0 ? ` · ${pending.length} uploading` : ''}
+          </div>
+
+          <div role="region" aria-label="Saved sources" tabIndex={0} className="panel-scroll h-[360px] overflow-y-scroll overscroll-contain rounded-xl pr-2 [scrollbar-gutter:stable] focus-visible:outline-2 focus-visible:outline-admin-focus">
+          {sources.length === 0 && pending.length === 0 ? (
+/* progress step 3 */
           </div>
 
           {sources.length === 0 && pending.length === 0 ? (
