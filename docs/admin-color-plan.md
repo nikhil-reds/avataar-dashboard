@@ -28,7 +28,7 @@ Keep current layouts, account/session behavior, and data operations intact.
 | Text on blue buttons: text-admin-on-accent | #000000 | #000000 |
 
 Do not add alternate blue shades for hover. Use an outline, underline, or an
-/* progress step 1 */
+approved neutral instead. Reserve blue for primary actions, selection markers,
 focus rings, and key data. In light mode, ordinary links use dark text and an
 underline, since small blue text on white has insufficient contrast.
 Use opaque palette colors for ordinary surfaces. Transparency is limited to
@@ -51,15 +51,15 @@ Existing photographs, video, and official logo artwork retain their original col
    and Memory, including filters, search, pagination, transcripts, detail panels,
    selected rows, empty states, and deletion confirmations.
 5. **Editing and processing flows.** Migrate PDF ingest, Manual entry,
-   Avatar studio, and Persona. Cover inputs, previews, file upload, progress,
-   render queues, validation messages, save feedback, and modal overlays.
+   and Persona. Cover inputs, previews, file upload, progress,
+   validation messages, save feedback, and modal overlays.
 6. **Final sweep and verification.** Remove remaining authored out-of-palette
    Tailwind classes and inline hex/RGB/OKLCH values from admin routes and all
    components they render. Inspect imported status/config maps as well as JSX.
 
 ## Status and interaction rules
 
-- Success: check icon plus “Saved”, “Healthy”, or “Completed”.
+/* progress step 2 */
 - Warning: triangle icon plus “Needs attention” and an actionable explanation.
 - Error: circle-X icon plus “Failed” or “Unavailable”, with a retry action when available.
 - Pending: clock/spinner plus “Queued” or “Processing”.
