@@ -48,6 +48,7 @@ export interface AvatarPanelProps {
   className?: string;
   showIdleScreen?: boolean;
   showStageControl?: boolean;
+  showDisconnectControl?: boolean;
   onPhaseChange?: (phase: AvatarPhase) => void;
   onUserTranscription?: (text: string) => void;
   onAvatarTranscription?: (text: string) => void;
@@ -60,6 +61,7 @@ export default function AvatarPanel({
   className = '',
   showIdleScreen = true,
   showStageControl = true,
+  showDisconnectControl = false,
   onPhaseChange,
   onUserTranscription,
   onAvatarTranscription,
@@ -511,7 +513,18 @@ export default function AvatarPanel({
             </div>
           )}
 
-          {/* Speaking waveform badge */}
+          {/* Home uses the centered badge position for its session control. */}
+          {showDisconnectControl ? (
+            isLive && (
+              <button
+                type="button"
+                onClick={handleEnd}
+                className="absolute bottom-5 left-1/2 z-30 -translate-x-1/2 cursor-pointer rounded-full border border-white/20 bg-black/60 px-5 py-3 text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-white shadow-lg backdrop-blur-md transition-colors hover:bg-black/80 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white active:scale-95"
+              >
+                Disconnect
+              </button>
+            )
+          ) : (
           <div
             className={`absolute bottom-5 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 px-3.5 py-2 rounded-full
                         bg-surface-glass backdrop-blur-md border border-border-subtle shadow-lg pointer-events-none transition-all duration-300
@@ -528,6 +541,7 @@ export default function AvatarPanel({
             </div>
             <span className="text-[11px] font-medium text-text-primary">Speaking</span>
           </div>
+          )}
         </div>
       </div>
 
