@@ -58,7 +58,8 @@ export async function POST() {
   } else {
     body.avatar_persona = { language: 'en' };
 
-/* progress step 2 */
+    if (voiceId && !(await configuredVoiceExists(apiKey, voiceId))) {
+      return NextResponse.json(
         { error: `VOICE_ID ${voiceId} was not found in LiveAvatar` },
         { status: 400 }
       );
@@ -69,10 +70,6 @@ export async function POST() {
     }
   }
 
-  if (requestedMode === 'LITE' && readEnv('LIVEAVATAR_AUDIO_API_KEY')) {
-    body.audio = { api_key: readEnv('LIVEAVATAR_AUDIO_API_KEY') };
-  }
-
   if (isSandbox) {
     body.is_sandbox = true;
   }
@@ -81,18 +78,17 @@ export async function POST() {
     (body.avatar_persona as Record<string, unknown>).context_id = contextId;
   }
 
-  const configSummary = summarizeAvatarConfig(config, requestedMode);
+  const configSummary = summarizeAvatarConfig({ ...config, contextId: published?.contextId ?? contextId }, requestedMode);
   console.info(formatAvatarConfigLog(configSummary));
 
-  // Fire-and-forget, in parallel with the token request: prepare whichever app-owned
-  // brain will answer before the shopper asks the first question.
-  if (brain === 'local') void warmUpModel();
-  if (brain === 'redis') {
-    void refreshAvatarContextCache().catch((err) =>
-      console.warn('[redis] context warm-up failed', err)
-    );
-  }
-
+  const startedAt = Date.now();
+  const res = await fetch(`${API_BASE}/v1/sessions/token`, {
+    method: 'POST',
+    headers: {
+      'X-API-KEY': apiKey,
+      'Content-Type': 'application/json',
+    },
+/* progress step 3 */
   const startedAt = Date.now();
   const res = await fetch(`${API_BASE}/v1/sessions/token`, {
     method: 'POST',
