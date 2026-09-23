@@ -1,25 +1,13 @@
 'use client';
 
-import {
-  AudioLines,
-  Boxes,
-  Brain,
-  DatabaseZap,
-  FileSearch,
-  GitBranch,
-  LockKeyhole,
-  MessageCircle,
-  Radio,
-  Sparkles,
-} from 'lucide-react';
+import { AudioLines, Brain, DatabaseZap, FileSearch } from 'lucide-react';
 
 const ITEMS = [
-  {
-    icon: MessageCircle,
-    title: 'Cached buffer audio',
-    body: 'Buffer phrase selection is local and can return pre-generated audio before TTS or LLM starts.',
-  },
-  {
+  { icon: DatabaseZap, title: 'Publish to Redis', body: 'Publish saves a full snapshot of your intro, persona, instructions and extracted source text in Docker Redis.' },
+  { icon: AudioLines, title: 'Opening intro', body: 'The published intro becomes the HeyGen context greeting. Reconnect to hear the latest version.' },
+  { icon: FileSearch, title: 'Saved sources', body: 'All saved sources with usable text are included. Sources awaiting extraction or marked failed are listed as excluded.' },
+  { icon: Brain, title: 'HeyGen context', body: 'A versioned context carries your persona, instructions and sources to HeyGen. New sessions use it with your configured voice and model.' },
+/* progress step 1 */
     icon: Sparkles,
     title: 'Persona controlled',
     body: 'Opening intro, persona and instructions come from this admin page and are cached for the agent.',
