@@ -11,6 +11,7 @@ import { usePathname } from 'next/navigation';
 
 import { Sidebar } from './Sidebar';
 import type { NavTab } from '../../types';
+import type { SessionUser } from '@/lib/auth';
 
 /**
  * Lets the page-level Header open the navigation drawer.
@@ -30,6 +31,7 @@ export function useNavDrawer() {
 
 interface AdminShellProps {
   tabs: NavTab[];
+  user: SessionUser;
   children: React.ReactNode;
 }
 
@@ -39,7 +41,7 @@ interface AdminShellProps {
  * It exists so `app/admin/layout.tsx` can stay a server component and keep
  * awaiting `getNavBadges()`.
  */
-export function AdminShell({ tabs, children }: AdminShellProps) {
+export function AdminShell({ tabs, user, children }: AdminShellProps) {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
 
@@ -76,7 +78,7 @@ export function AdminShell({ tabs, children }: AdminShellProps) {
   return (
     <NavDrawerContext.Provider value={drawer}>
       <div className="flex min-h-screen bg-[var(--background)] text-zinc-900 dark:text-zinc-100 transition-colors">
-        <Sidebar tabs={tabs} isOpen={isOpen} onClose={() => setIsOpen(false)} />
+        <Sidebar tabs={tabs} user={user} isOpen={isOpen} onClose={() => setIsOpen(false)} />
 
         <main className="flex-1 min-w-0 flex flex-col">{children}</main>
       </div>
