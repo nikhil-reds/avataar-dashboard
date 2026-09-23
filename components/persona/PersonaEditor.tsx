@@ -285,7 +285,9 @@ export function PersonaEditor({ initialSettings, tab }: PersonaEditorProps) {
               <div
                 className={`mt-5 rounded-lg border px-3 py-2 text-sm ${
                   error || validationError
-/* progress step 5 */
+                    ? 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/30 dark:text-rose-300'
+                    : 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-300'
+                }`}
               >
                 {error || validationError || notice}
               </div>
@@ -315,7 +317,7 @@ export function PersonaEditor({ initialSettings, tab }: PersonaEditorProps) {
                     state
                   </dt>
                   <dd className="mt-1 font-semibold text-zinc-900 dark:text-white">
-                    {isDirty ? 'Unsaved changes' : 'Saved'}
+                    {publishing ? 'Publishing…' : unpublished ? 'Unpublished changes' : 'Published'}
                   </dd>
                 </div>
                 <div className="rounded-lg bg-zinc-50 p-3 dark:bg-zinc-800/50">
@@ -325,6 +327,13 @@ export function PersonaEditor({ initialSettings, tab }: PersonaEditorProps) {
                   <dd className="mt-1 font-semibold text-zinc-900 dark:text-white">
                     {DATE_FORMATTER.format(new Date(saved.updatedAt))}
                   </dd>
+                </div>
+                <div className="rounded-lg bg-zinc-50 p-3 dark:bg-zinc-800/50">
+                  <dt className="text-xs text-zinc-500">Last published</dt>
+                  <dd className="mt-1">{published ? DATE_FORMATTER.format(new Date(published.publishedAt)) : 'Not published yet'}</dd>
+                  <p className="mt-2 text-xs text-zinc-500">{published?.contextId ? `Synced to HeyGen · ${published.sourceCount ?? 0} sources` : agentConfigured ? 'Ready to publish to HeyGen' : 'Configure your HeyGen API key'}</p>
+                  <p className="mt-2 text-xs text-zinc-500">Publish again after editing saved sources. Reconnect to use the latest published version.</p>
+                  {published?.excludedSources?.map(source => <p key={source.id} className="mt-2 text-xs text-zinc-500">Excluded: {source.title} — {source.reason}</p>)}
                 </div>
               </dl>
             </section>
