@@ -72,17 +72,6 @@ export const TAB_DEFINITIONS: NavTab[] = [
     cta: 'Save entry',
   },
   {
-    id: 'knowledge',
-    href: '/admin/knowledge',
-    label: 'Knowledge',
-    badge: '',
-    crumb: 'avatar',
-    title: 'Avatar knowledge base',
-    subtitle:
-      'What the avatar knows. Entries saved here are retrieved per question and are live on the next thing a shopper asks.',
-    cta: 'Add knowledge',
-  },
-  {
     id: 'avatar',
     href: '/admin/avatar',
     label: 'Avatar studio',
