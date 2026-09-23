@@ -38,7 +38,6 @@ function shorten(text: string, maxWords = MAX_WORDS) {
   const shortened = words.length > maxWords ? `${words.slice(0, maxWords).join(' ')}.` : firstSentence;
   return shortened.replace(/\s+/g, ' ').trim();
 }
-/* progress step 1 */
 
 function countMatches(haystack: string, needles: string[]) {
   const normalized = haystack.toLowerCase();
@@ -79,6 +78,7 @@ function skuAnswer(row: CachedSku) {
   const point = row.talkingPoints[0] ? ` ${shorten(row.talkingPoints[0], 12)}` : '';
   return shorten(`${row.name} (${row.sku}) is a ${row.category} item, priced at ${row.price}, with ${stock}.${point}`);
 }
+/* progress step 2 */
 
 function knowledgeAnswer(row: CachedKnowledge) {
   return shorten(row.content);
