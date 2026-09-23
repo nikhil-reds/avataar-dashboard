@@ -15,4 +15,13 @@ export async function GET() {
     const current = await publicationContent(settings);
     return NextResponse.json({ published, agentConfigured: agentConfigured(),
       hasChanges: !published?.contextId || published.contentHash !== current.contentHash,
-/* step 2 initialization */
+      sourceCount: current.sources.length, catalogueCount: current.catalogue.length,
+    });
+  } catch {
+    return NextResponse.json({ error: 'Could not check publication status. Check the database and Redis.' }, { status: 503 });
+  }
+}
+export async function POST(request: Request) {
+  if (!(await getSessionUser())) return NextResponse.json({ error: 'Sign in required' }, { status: 401 });
+  let input;
+/* step 3 initialization */
