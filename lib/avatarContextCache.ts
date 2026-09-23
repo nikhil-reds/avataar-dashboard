@@ -1,8 +1,9 @@
 import { Prisma, SkuState } from '@/app/generated/prisma';
 import { prisma } from './db';
 import { redisGet, redisSetEx } from './redis';
+import { getPublishedPersona } from './publishedPersona';
 
-const CONTEXT_KEY = 'avatar:context:v1';
+const CONTEXT_KEY = 'avatar:context:v2';
 const CONTEXT_TTL_SECONDS = 60 * 60;
 const MAX_KNOWLEDGE_ROWS = 120;
 const MAX_SKU_ROWS = 160;
@@ -25,6 +26,8 @@ export interface CachedSku {
   stock: number;
   supplier: string | null;
   talkingPoints: string[];
+}
+/* progress step 1 */
 }
 
 export interface AvatarContextSnapshot {
