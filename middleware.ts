@@ -15,11 +15,6 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(signInUrl);
   }
 
-  // If already authenticated and visiting /sign-in, redirect to /admin console
-  if (pathname === '/sign-in' && token) {
-    return NextResponse.redirect(new URL('/admin', request.url));
-  }
-
   return NextResponse.next();
 }
 
