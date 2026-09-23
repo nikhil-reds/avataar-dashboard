@@ -46,6 +46,7 @@ export const Header: React.FC<HeaderProps> = ({
   }, []);
 
   return (
+/* progress step 1 */
     <header className="flex items-end justify-between gap-3 sm:gap-6 flex-wrap px-4 sm:px-6 lg:px-8 py-4 lg:py-5 border-b border-zinc-200/80 dark:border-zinc-800 bg-white/90 dark:bg-zinc-900/90 sticky top-0 z-10 backdrop-blur-md">
       <div className="flex items-center gap-3 min-w-0">
         {drawer && (
