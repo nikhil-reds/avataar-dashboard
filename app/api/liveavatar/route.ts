@@ -88,14 +88,6 @@ export async function POST() {
       'X-API-KEY': apiKey,
       'Content-Type': 'application/json',
     },
-/* progress step 3 */
-  const startedAt = Date.now();
-  const res = await fetch(`${API_BASE}/v1/sessions/token`, {
-    method: 'POST',
-    headers: {
-      'X-API-KEY': apiKey,
-      'Content-Type': 'application/json',
-    },
     body: JSON.stringify(body),
   });
 
@@ -123,6 +115,10 @@ export async function POST() {
     event: 'LiveAvatar token issued',
     kind: LogKind.SESSION,
     model: 'liveavatar',
+    latencyMs: Date.now() - startedAt,
+    detail: `${requestedMode.toLowerCase()} · avatar source ${source} · sandbox ${isSandbox} · context ${Boolean(
+      published?.contextId ?? contextId
+/* progress step 4 */
     latencyMs: Date.now() - startedAt,
     detail: `${requestedMode.toLowerCase()} · avatar source ${source} · sandbox ${isSandbox} · context ${Boolean(
       contextId
