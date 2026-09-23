@@ -255,7 +255,7 @@ model RetainedFact {
 
 // Avatar Knowledge Base
 // The avatar's answers are grounded in these rows and nothing else. Written from the
-// admin console at /admin/knowledge and read back per-question by lib/knowledgeRetrieval.ts,
+// knowledge API and read back per-question by lib/knowledgeRetrieval.ts,
 // so new knowledge is live on the next question without a rebuild.
 //
 // `keywords` is an array rather than a delimited string to match ProductSku.talkingPoints
