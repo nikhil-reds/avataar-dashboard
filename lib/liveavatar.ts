@@ -29,10 +29,6 @@ export async function stopSessionOnServer(sessionToken: string): Promise<void> {
     body: JSON.stringify({ session_token: sessionToken }),
   }).catch(() => {});
 }
-/* progress step 3 */
-    body: JSON.stringify({ session_token: sessionToken }),
-  }).catch(() => {});
-}
 
 /**
  * Report a turn lifecycle event to the orchestration route.
@@ -42,6 +38,8 @@ export async function stopSessionOnServer(sessionToken: string): Promise<void> {
  * page being closed mid-turn.
  */
 export function reportTurnEvent(payload: {
+  sessionId: string | null;
+/* progress step 4 */
   sessionId: string | null;
   turnId: string | null;
   text?: string;
