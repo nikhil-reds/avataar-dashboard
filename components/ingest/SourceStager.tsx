@@ -230,19 +230,16 @@ export const SourceStager: React.FC<SourceStagerProps> = ({
 
           <div role="region" aria-label="Saved sources" tabIndex={0} className="panel-scroll h-[360px] overflow-y-scroll overscroll-contain rounded-xl pr-2 [scrollbar-gutter:stable] focus-visible:outline-2 focus-visible:outline-admin-focus">
           {sources.length === 0 && pending.length === 0 ? (
-/* progress step 3 */
-          </div>
-
-          {sources.length === 0 && pending.length === 0 ? (
             <div className="py-6 text-center text-xs text-zinc-400 border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl">
               Nothing stored yet.
             </div>
           ) : (
-            <ul className="flex flex-col gap-2">
+            <div className="flex flex-col gap-3">
+              {pending.length > 0 && <ul aria-label="Uploading sources" className="flex flex-col gap-2">
               {pending.map((upload) => (
                 <li
                   key={upload.tempId}
-                  className="flex items-center gap-3 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2.5 bg-zinc-50/50 dark:bg-zinc-800/20 opacity-70"
+                  className="flex h-[72px] shrink-0 items-center gap-3 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2.5 bg-zinc-50/50 dark:bg-zinc-800/20 opacity-70"
                 >
                   <Loader2 className="w-4 h-4 text-indigo-500 shrink-0 animate-spin" />
                   <div className="flex flex-col min-w-0 flex-1">
@@ -256,6 +253,8 @@ export const SourceStager: React.FC<SourceStagerProps> = ({
                 </li>
               ))}
 
+              </ul>}
+              <ul className="flex flex-col gap-2">
               {sources.map((source) => {
                 const Icon = iconFor(source);
                 const pendingExtraction = source.status === 'PENDING_EXTRACTION';
@@ -263,15 +262,15 @@ export const SourceStager: React.FC<SourceStagerProps> = ({
                 return (
                   <li
                     key={source.id}
-                    className="flex items-center gap-3 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2.5 bg-zinc-50/50 dark:bg-zinc-800/20"
+                    className="flex h-[72px] shrink-0 items-center gap-3 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2.5 bg-zinc-50/50 dark:bg-zinc-800/20"
                   >
                     <Icon className="w-4 h-4 text-indigo-500 shrink-0" />
 
                     <div className="flex flex-col min-w-0 flex-1">
-                      <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 truncate">
+                      <span title={source.title} className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 truncate">
                         {source.title}
                       </span>
-                      <span className="font-mono text-[10.5px] text-zinc-400">
+                      <span className="truncate font-mono text-[10.5px] text-zinc-400">
                         {badgeFor(source)} · {formatBytes(source.sizeBytes)}
                         {pendingExtraction ? ' · metadata only' : ''}
                         {source.status === 'INDEXED' ? ' · indexed' : ''}
@@ -300,8 +299,10 @@ export const SourceStager: React.FC<SourceStagerProps> = ({
                   </li>
                 );
               })}
-            </ul>
+              </ul>
+            </div>
           )}
+          </div>
         </div>
       </div>
     </div>
