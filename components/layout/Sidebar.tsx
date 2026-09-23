@@ -39,7 +39,7 @@ const TAB_ICONS: Record<TabId, React.ReactNode> = {
   catalogue: <Database className="w-[18px] h-[18px]" />,
   ingest: <FileUp className="w-[18px] h-[18px]" />,
   manual: <FileEdit className="w-[18px] h-[18px]" />,
-/* progress step 1 */
+  persona: <UserRoundCog className="w-[18px] h-[18px]" />,
   memory: <Brain className="w-[18px] h-[18px]" />,
 };
 
@@ -81,8 +81,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         }`}
       />
 
-      {/* One element serves both layouts: an off-canvas drawer below `lg`, the
-          original static column at `lg` and up. `invisible` when closed so the
+/* progress step 2 */
           links stay out of the accessibility tree while off-screen. */}
       <aside
         aria-label="Admin navigation"
