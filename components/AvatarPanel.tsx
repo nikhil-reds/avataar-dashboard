@@ -312,7 +312,7 @@ export default function AvatarPanel({
           window.setTimeout(() => {
             if (sessionRef.current !== session) return;
             void answerQuestion('hello');
-/* progress step 2 */
+          }, 600);
         }
       });
 
@@ -370,7 +370,7 @@ export default function AvatarPanel({
         recorder.recordShopper(e.event_id, e.text);
         onUserTranscription?.(e.text);
 
-        // This is the app brain entering the conversation: Redis/local modes generate
+        // This is the app brain entering the conversation: Legacy Redis mode generates
         // the short content, then LiveAvatar speaks it with the configured voice.
         if (brainRef.current !== 'heygen') void answerQuestion(e.text);
       });
@@ -469,7 +469,7 @@ export default function AvatarPanel({
             playsInline
           />
           <audio ref={audioRef} autoPlay playsInline className="hidden" />
-
+/* progress step 3 */
           {/* Tap-to-unlock audio overlay */}
           {audioLocked && (
             <button
