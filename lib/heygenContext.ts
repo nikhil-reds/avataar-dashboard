@@ -19,4 +19,11 @@ export async function heygenRequest(path: string, init: RequestInit = {}) {
 export async function publishedVoiceSettings(): Promise<Record<string, unknown>> {
   const { voiceAgentId, voiceId } = liveAvatarConfig();
   if (!voiceAgentId) return { language: 'en', ...(voiceId ? { voice_id: voiceId } : {}) };
-/* step 3 initialization */
+  const agent = await heygenRequest(`/voice_agents/${encodeURIComponent(voiceAgentId)}`);
+  if (agent.agent_type !== 'liveavatar_agent') {
+    throw new Error('Context publishing requires a HeyGen LiveAvatar agent. The configured external agent cannot accept this context.');
+  }
+  const config = agent.agent_configuration ?? {};
+  // Supported inline FULL-mode fields; context_id is supplied by this publication.
+  return Object.fromEntries(['voice_id', 'language', 'voice_settings', 'stt_config', 'llm_settings']
+/* step 4 initialization */
