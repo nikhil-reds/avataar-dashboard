@@ -4,7 +4,7 @@
 
 Use only white, black, #0085FF, #0D0E12, #12141D, #2C2C2C,
 #383838, #E0E0E0, and #A1A1A1 for authored admin interface colors.
-All nine admin sections and their shared components are in scope.
+All eight admin sections and their shared components are in scope.
 
 The global palette and light/dark semantic tokens are added in app/globals.css.
 Component migration is planned below; existing page colors have not yet been replaced.
@@ -28,7 +28,7 @@ Keep current layouts, account/session behavior, and data operations intact.
 | Text on blue buttons: text-admin-on-accent | #000000 | #000000 |
 
 Do not add alternate blue shades for hover. Use an outline, underline, or an
-approved neutral instead. Reserve blue for primary actions, selection markers,
+/* progress step 1 */
 focus rings, and key data. In light mode, ordinary links use dark text and an
 underline, since small blue text on white has insufficient contrast.
 Use opaque palette colors for ordinary surfaces. Transparency is limited to
