@@ -78,7 +78,6 @@ function skuAnswer(row: CachedSku) {
   const point = row.talkingPoints[0] ? ` ${shorten(row.talkingPoints[0], 12)}` : '';
   return shorten(`${row.name} (${row.sku}) is a ${row.category} item, priced at ${row.price}, with ${stock}.${point}`);
 }
-/* progress step 2 */
 
 function knowledgeAnswer(row: CachedKnowledge) {
   return shorten(row.content);
@@ -98,7 +97,7 @@ export interface RedisAnswer {
 export function answerFromContext(snapshot: AvatarContextSnapshot, message: string): RedisAnswer {
   if (isGreeting(message)) {
     return {
-      response: shorten(snapshot.openingStatement || FALLBACK_OPENING),
+      response: snapshot.openingStatement || FALLBACK_OPENING,
       source: 'opening',
       context: {
         refreshedAt: snapshot.refreshedAt,
@@ -111,7 +110,7 @@ export function answerFromContext(snapshot: AvatarContextSnapshot, message: stri
   const queryTerms = terms(message);
   if (queryTerms.length === 0) {
     return {
-      response: shorten(snapshot.openingStatement || FALLBACK_OPENING),
+      response: snapshot.openingStatement || FALLBACK_OPENING,
       source: 'opening',
       context: {
         refreshedAt: snapshot.refreshedAt,
@@ -119,6 +118,7 @@ export function answerFromContext(snapshot: AvatarContextSnapshot, message: stri
         catalogueRows: snapshot.catalogue.length,
       },
     };
+/* progress step 3 */
   }
 
   const bestKnowledge = snapshot.knowledge
