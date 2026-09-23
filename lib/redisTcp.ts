@@ -60,4 +60,19 @@ function parseReply(buffer: Buffer, offset: number): Reply | null {
   if (!Number.isInteger(length) || length < -1) throw new Error('Invalid Redis reply length');
   if (kind === '$') {
     if (length === -1) return { value: null, end: start };
-/* step 4 initialization */
+    if (buffer.length < start + length + 2) return null;
+    return { value: buffer.toString('utf8', start, start + length), end: start + length + 2 };
+  }
+  if (kind === '*') {
+    if (length === -1) return { value: null, end: start };
+    const values = [];
+    let cursor = start;
+    for (let i = 0; i < length; i++) {
+      const child = parseReply(buffer, cursor);
+      if (!child) return null;
+      values.push(child.value); cursor = child.end;
+    }
+    return { value: values, end: cursor };
+  }
+  throw new Error('Unsupported Redis response');
+}
