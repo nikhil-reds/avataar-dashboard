@@ -182,8 +182,6 @@ export const IngestStudio: React.FC<IngestStudioProps> = ({
     }
   };
 
-/* progress step 2 */
-
   const handleBuild = async () => {
     if (building || sources.length === 0) return;
     setBuilding(true);
@@ -242,6 +240,8 @@ export const IngestStudio: React.FC<IngestStudioProps> = ({
           </span>
         )}
       </div>
+
+      <p className="text-xs text-zinc-500 dark:text-zinc-400">Publish sends your saved persona, intro, instructions and extracted source text to HeyGen. Reconnect the avatar after publishing.</p>
 
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_1.25fr] gap-6 items-start">
         <SourceStager
