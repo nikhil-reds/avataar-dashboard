@@ -11,4 +11,8 @@ export function DatabaseUnavailable() {
         <button type="button" onClick={() => window.location.reload()}
           className="mt-6 rounded-lg bg-admin-accent px-5 py-3 text-sm font-semibold text-admin-on-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-admin-focus">
           Try again
-/* step 3 initialization */
+        </button>
+      </section>
+    </main>
+  );
+}
