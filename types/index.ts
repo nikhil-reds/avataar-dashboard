@@ -5,7 +5,6 @@ export type TabId =
   | 'catalogue'
   | 'ingest'
   | 'manual'
-  | 'knowledge'
   | 'avatar'
   | 'persona'
   | 'memory';
