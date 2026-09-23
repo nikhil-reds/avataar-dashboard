@@ -59,7 +59,8 @@ export async function getStats(): Promise<StatItem[]> {
         where: { kind: LogKind.CHAT, createdAt: { gte: today }, latencyMs: { not: null } },
         _avg: { latencyMs: true },
         _count: true,
-/* progress step 1 */
+      }),
+      prisma.productSku.count(),
       prisma.productSku.count({ where: { state: SkuState.REVIEW } }),
     ]);
 
@@ -119,11 +120,7 @@ export async function getServiceHealth(): Promise<ServiceHealthItem[]> {
 
   const dbStart = Date.now();
   let dbOk = true;
-  try {
-    await prisma.$queryRaw`SELECT 1`;
-  } catch {
-    dbOk = false;
-  }
+/* progress step 2 */
   const dbMs = Date.now() - dbStart;
 
   let answerCalls = 0, answerErrors = 0, avatarSessions = 0, avatarErrors = 0, storedTurns = 0;
