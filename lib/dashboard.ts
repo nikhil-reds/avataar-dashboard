@@ -120,7 +120,11 @@ export async function getServiceHealth(): Promise<ServiceHealthItem[]> {
 
   const dbStart = Date.now();
   let dbOk = true;
-/* progress step 2 */
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+  } catch {
+    dbOk = false;
+  }
   const dbMs = Date.now() - dbStart;
 
   let answerCalls = 0, answerErrors = 0, avatarSessions = 0, avatarErrors = 0, storedTurns = 0;
@@ -143,17 +147,7 @@ export async function getServiceHealth(): Promise<ServiceHealthItem[]> {
   const avatarConfigured = Boolean(liveAvatarConfig().apiKey);
   const redis = redisStatus();
 
-  // The model runs locally, so "configured" is not a key check but a reachability check:
-  // the container is either answering or it is not.
-  let llmOk = false;
-  const llmStart = Date.now();
-  try {
-    const res = await fetch(`${llmBaseUrl()}/api/tags`, { signal: AbortSignal.timeout(2_000) });
-    llmOk = res.ok;
-  } catch {
-    llmOk = false;
-  }
-  const llmMs = Date.now() - llmStart;
+  const agentConfigured = avatarConfigured && Boolean(liveAvatarConfig().voiceAgentId || liveAvatarConfig().contextId);
 
   return [
     {
@@ -171,12 +165,12 @@ export async function getServiceHealth(): Promise<ServiceHealthItem[]> {
       color: !avatarConfigured ? GREY : avatarErrors > 0 ? RED : GREEN,
     },
     {
-      name: `Local LLM (${llmModel()})`,
-      note: llmOk
-        ? `${answerCalls} answers in 24h · ${llmMs}ms to respond`
-        : `ollama unreachable at ${llmBaseUrl()} — run: docker compose up -d ollama`,
-      metric: answerErrors > 0 ? `${answerErrors} errors` : llmOk ? 'ready' : 'down',
-      color: !llmOk ? RED : answerErrors > 0 ? AMBER : GREEN,
+      name: 'HeyGen conversation agent',
+      note: agentConfigured
+        ? 'Answers and voice handled by the configured HeyGen agent'
+        : 'Configure a LiveAvatar voice agent or context',
+      metric: agentConfigured ? 'configured' : 'not configured',
+      color: agentConfigured ? GREEN : GREY,
     },
     {
       // Shared runtime state. Reported honestly: the in-memory fallback is not Redis
@@ -185,6 +179,9 @@ export async function getServiceHealth(): Promise<ServiceHealthItem[]> {
       note: redis.available
         ? 'shared session state · distributed locking active'
         : redis.configured
+          ? 'configured but unreachable · in-memory fallback, locks are process-local'
+          : 'not configured · in-memory fallback, locks are process-local',
+/* progress step 3 */
           ? 'configured but unreachable · in-memory fallback, locks are process-local'
           : 'not configured · in-memory fallback, locks are process-local',
       metric: redis.available ? 'redis' : 'memory',
