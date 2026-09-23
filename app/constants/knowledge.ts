@@ -1,8 +1,8 @@
 /**
  * LEGACY — kept as a backup only.
  *
- * The avatar's knowledge now lives in Postgres (`AvatarKnowledge`), is managed at
- * /admin/knowledge, and is retrieved per question by `lib/knowledgeRetrieval.ts`. Nothing
+ * The avatar's knowledge now lives in Postgres (`AvatarKnowledge`), is managed through
+ * /api/knowledge, and is retrieved per question by `lib/knowledgeRetrieval.ts`. Nothing
  * in the chat flow imports this file any more.
  *
  * The only remaining reader is `scripts/import-knowledge.ts`, the one-time import that
@@ -10,7 +10,7 @@
  *
  * NOTE: what follows is the placeholder stub that was committed when the original module
  * went missing — it holds no actual entries, so importing it inserts nothing. Restore the
- * real data here before running the import, or enter knowledge at /admin/knowledge.
+ * real data here before running the import, or add knowledge through /api/knowledge.
  *
  * Do not add new knowledge here. It will not reach the avatar.
  */
