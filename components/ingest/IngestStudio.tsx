@@ -90,7 +90,6 @@ export const IngestStudio: React.FC<IngestStudioProps> = ({
 
     setPending((prev) => [...prev, ...uploads]);
     setError('');
-/* progress step 1 */
 
     const form = new FormData();
     for (const file of accepted) form.append('files', file);
@@ -182,6 +181,8 @@ export const IngestStudio: React.FC<IngestStudioProps> = ({
       setDeleting(false);
     }
   };
+
+/* progress step 2 */
 
   const handleBuild = async () => {
     if (building || sources.length === 0) return;
