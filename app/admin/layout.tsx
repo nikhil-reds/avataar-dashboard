@@ -5,6 +5,8 @@ import { TAB_DEFINITIONS } from '@/data/navigation';
 import { getNavBadges } from '@/lib/dashboard';
 import { OG_BASE, OG_IMAGE } from '@/lib/siteMetadata';
 import type { TabId } from '@/types';
+import { redirect } from 'next/navigation';
+import { getSessionUser } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,7 +16,7 @@ export const dynamic = 'force-dynamic';
  * the shopper-facing avatar at a glance.
  *
  * Indexing is off across the whole section: this is an internal console with no
- * auth in front of it, and there is nothing here that belongs in search results.
+ * public content, and there is nothing here that belongs in search results.
  */
 export const metadata: Metadata = {
   title: {
@@ -42,6 +44,8 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const user = await getSessionUser();
+  if (!user) redirect('/sign-in');
   const badges = await getNavBadges();
 
   const counts: Partial<Record<TabId, number>> = {
@@ -55,5 +59,5 @@ export default async function AdminLayout({
     badge: counts[tab.id] ? String(counts[tab.id]) : '',
   }));
 
-  return <AdminShell tabs={tabs}>{children}</AdminShell>;
+  return <AdminShell tabs={tabs} user={user}>{children}</AdminShell>;
 }
