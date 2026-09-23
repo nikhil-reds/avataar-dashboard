@@ -14,20 +14,4 @@ export function organizeSources(sources: IngestSourceRow[], sort: SourceSort, gr
   const sorted = [...sources].sort((a, b) => {
     const names = a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: 'base' });
     const difference = sort === 'name' ? names
-      : sort === 'largest' ? b.sizeBytes - a.sizeBytes
-      : sort === 'smallest' ? a.sizeBytes - b.sizeBytes
-      : sort === 'oldest' ? Date.parse(a.createdAt) - Date.parse(b.createdAt)
-      : Date.parse(b.createdAt) - Date.parse(a.createdAt);
-    return difference || names || a.id.localeCompare(b.id);
-  });
-  const groups = new Map<string, IngestSourceRow[]>();
-  for (const source of sorted) {
-    const label = grouping === 'none' ? 'All sources'
-      : grouping === 'status' ? STATUS_LABELS[source.status]
-      : source.kind === 'TEXT' ? 'Pasted text' : source.ext.toUpperCase() || 'Other files';
-    const rows = groups.get(label) ?? [];
-    rows.push(source);
-    groups.set(label, rows);
-  }
-  return [...groups].sort(([a], [b]) => a.localeCompare(b)).map(([label, rows]) => ({ label, rows }));
-}
+// pending deprecation step 1
