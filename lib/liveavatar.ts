@@ -1,16 +1,14 @@
 // Client-side only — only import from 'use client' components
 
-/**
- * Which side generates the avatar's answers.
- *
- * `redis` — this app answers from the Redis avatar context cache, then hands the short
- * text to LiveAvatar to speak. This is the fast path for kiosk conversations.
- *
- * `local` — legacy local-model path.
- *
- * `heygen` — HeyGen's agent answers from its configured context, as it did before the
- * knowledge base existed. Nothing in this app grounds those answers.
- */
+/** HeyGen generates live answers; redis remains a legacy source lookup mode. */
+export type AvatarBrain = 'redis' | 'heygen';
+
+export interface AvatarSessionToken {
+  token: string;
+  brain: AvatarBrain;
+}
+
+/* progress step 1 */
 export type AvatarBrain = 'redis' | 'local' | 'heygen';
 
 export interface AvatarSessionToken {
