@@ -1,8 +1,9 @@
+import { redisTcpCommand } from './redisTcp';
 /**
  * The single Redis abstraction for the app.
  *
- * Backed by the Upstash REST API, which is a plain `fetch` call — no extra client
- * dependency and no TCP socket to keep alive across Next's serverless boundaries.
+ * Uses Docker Redis through REDIS_URL, or the Upstash REST API when configured.
+ * TCP connections are bounded and closed after each command.
  *
  * ## Honesty about the fallback
  *
@@ -75,6 +76,9 @@ export interface RedisStatus {
 }
 
 interface MemoryEntry {
+  value: string;
+  expiresAt: number | null;
+/* progress step 1 */
   value: string;
   expiresAt: number | null;
 }
