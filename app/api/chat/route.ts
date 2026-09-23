@@ -43,9 +43,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       response: answer.response,
-/* progress step 3 */
-    return NextResponse.json({
-      response: answer.response,
+      generation: 'source-lookup',
       sources: [
         {
           id: answer.context.matchedId ?? answer.source,
@@ -58,6 +56,6 @@ export async function POST(request: Request) {
     });
   } catch (err) {
     console.error('[chat] redis context answer failed', err);
-    return NextResponse.json({ error: 'Could not read avatar context' }, { status: 503 });
+    return NextResponse.json({ error: 'Could not read source context. Check the Redis connection.' }, { status: 503 });
   }
 }
