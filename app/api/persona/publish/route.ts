@@ -33,4 +33,12 @@ export async function POST(request: Request) {
   catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : 'Invalid settings' }, { status: 400 }); }
   let saved;
   try {
-/* step 4 initialization */
+    saved = useSaved ? await getPersonaSettings() : await updatePersonaSettings(input!);
+    const published = await publishPersona(saved);
+    return NextResponse.json({ saved, published, agentConfigured: agentConfigured() });
+  } catch (error) {
+    return NextResponse.json({ saved, error: saved
+      ? `${useSaved ? 'Saved settings unchanged.' : 'Draft saved.'} ${error instanceof Error ? error.message : 'Publishing failed.'} The previous publication remains active.`
+      : 'Could not save settings. Please retry.' }, { status: 503 });
+  }
+}
