@@ -1,10 +1,10 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import { RotateCcw, Save, Sparkles } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { RotateCcw, Save, Sparkles, Loader2, UploadCloud } from 'lucide-react';
 
 import { Header } from '@/components/layout/Header';
-import { AgentPipelineOverview } from '@/components/persona/AgentPipelineOverview';
+import type { PublishedPersona } from '@/lib/publishedPersona';
 import type { NavTab, PersonaSettings } from '@/types';
 
 interface PersonaEditorProps {
@@ -47,6 +47,15 @@ function toForm(settings: PersonaSettings): PersonaForm {
     instructions: settings.instructions,
   };
 }
+
+function Field({
+  label,
+  name,
+  value,
+  rows,
+  onChange,
+}: {
+/* progress step 1 */
 
 function Field({
   label,
