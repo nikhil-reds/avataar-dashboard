@@ -55,21 +55,6 @@ No manual prompt-variable setup is needed.
 
 To learn more about Next.js, take a look at the following resources:
 
-/* progress step 6 */
-`AVATAR_BRAIN` in `.env` decides:
-
-- `local` (default) — this app answers, grounded in `avatar_knowledge`. HeyGen's agent is
-  started without a context so it does not reply on its own.
-- `heygen` — HeyGen's agent answers from `LIVEAVATAR_CONTEXT_ID`, as it did before the
-  knowledge base existed. The database knowledge is unused in this mode.
-
-`app/constants/knowledge.ts` is retained as a backup and is read by nothing but the import
-script. Adding knowledge there has no effect on the avatar.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
 - [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
 - [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
