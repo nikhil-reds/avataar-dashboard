@@ -170,7 +170,19 @@ export function PersonaEditor({ initialSettings, tab }: PersonaEditorProps) {
 
   const save = async () => {
     if (saving || publishing) return;
-/* progress step 3 */
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    setSaving(true);
+    setNotice('');
+    setError('');
+
+    try {
+      const response = await fetch('/api/persona', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
       });
       const data = await response.json();
@@ -192,6 +204,9 @@ export function PersonaEditor({ initialSettings, tab }: PersonaEditorProps) {
 
   return (
     <>
+      {toast && <div role={toast.failed ? 'alert' : 'status'} className="fixed bottom-6 right-6 z-50 max-w-sm rounded-xl border border-admin-border bg-admin-surface p-4 text-sm text-admin-text shadow-xl">
+        <p>{toast.text}</p><button type="button" className="mt-2 underline" onClick={() => setToast(null)}>Dismiss</button>
+      </div>}
       <Header activeTabDef={tab} onPrimaryClick={save} />
 
       <div className="flex max-w-7xl flex-col gap-5 p-4 pb-16 sm:p-6 lg:p-8">
@@ -203,7 +218,6 @@ export function PersonaEditor({ initialSettings, tab }: PersonaEditorProps) {
           </span>
         </div>
 
-        <AgentPipelineOverview />
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.25fr)_380px]">
           <section className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 sm:p-5">
@@ -214,12 +228,7 @@ export function PersonaEditor({ initialSettings, tab }: PersonaEditorProps) {
                 </h2>
                 <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
                   Keep this crisp. These fields shape the shopper-facing conversation.
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={reset}
+/* progress step 4 */
                   disabled={!isDirty || saving}
                   className="flex items-center gap-2 rounded-lg border border-zinc-200 px-3 py-2 text-xs font-semibold text-zinc-600 transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
                 >
