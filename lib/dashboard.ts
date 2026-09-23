@@ -181,9 +181,6 @@ export async function getServiceHealth(): Promise<ServiceHealthItem[]> {
         : redis.configured
           ? 'configured but unreachable · in-memory fallback, locks are process-local'
           : 'not configured · in-memory fallback, locks are process-local',
-/* progress step 3 */
-          ? 'configured but unreachable · in-memory fallback, locks are process-local'
-          : 'not configured · in-memory fallback, locks are process-local',
       metric: redis.available ? 'redis' : 'memory',
       color: redis.available ? GREEN : redis.configured ? RED : AMBER,
     },
