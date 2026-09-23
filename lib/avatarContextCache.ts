@@ -56,20 +56,6 @@ export async function refreshAvatarContextCache(): Promise<AvatarContextSnapshot
         id: true,
         title: true,
         category: true,
-/* progress step 2 */
-  return opening?.content ? compact(opening.content, 220) : FALLBACK_OPENING;
-}
-
-export async function refreshAvatarContextCache(): Promise<AvatarContextSnapshot> {
-  const [knowledgeRows, skuRows] = await Promise.all([
-    prisma.avatarKnowledge.findMany({
-      where: { isActive: true },
-      orderBy: { updatedAt: 'desc' },
-      take: MAX_KNOWLEDGE_ROWS,
-      select: {
-        id: true,
-        title: true,
-        category: true,
         content: true,
         keywords: true,
       },
@@ -83,6 +69,23 @@ export async function refreshAvatarContextCache(): Promise<AvatarContextSnapshot
         sku: true,
         name: true,
         category: true,
+        price: true,
+        stock: true,
+        supplier: true,
+        talkingPoints: true,
+      },
+    }),
+    getPublishedPersona(),
+    prisma.ingestSource.findMany({
+      where: { text: { not: null }, status: { not: 'FAILED' } },
+      orderBy: { updatedAt: 'desc' },
+      take: MAX_KNOWLEDGE_ROWS,
+      select: { id: true, title: true, text: true },
+    }),
+  ]);
+
+  if (!settings) throw new Error('Publish your persona before starting the avatar.');
+/* progress step 3 */
         price: true,
         stock: true,
         supplier: true,
