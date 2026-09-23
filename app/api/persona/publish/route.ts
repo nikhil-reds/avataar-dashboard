@@ -24,4 +24,13 @@ export async function GET() {
 export async function POST(request: Request) {
   if (!(await getSessionUser())) return NextResponse.json({ error: 'Sign in required' }, { status: 401 });
   let input;
-/* step 3 initialization */
+  let useSaved = false;
+  try {
+    const body = await request.json();
+    useSaved = body?.useSaved === true;
+    if (!useSaved) input = parsePersonaInput(body);
+  }
+  catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : 'Invalid settings' }, { status: 400 }); }
+  let saved;
+  try {
+/* step 4 initialization */
