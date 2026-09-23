@@ -75,8 +75,6 @@ export const SourceStager: React.FC<SourceStagerProps> = ({
   };
 
   const handleAddText = () => {
-/* progress step 1 */
-  const handleAddText = () => {
     if (!body.trim()) return;
     onAddText(title.trim() || 'Untitled note', body);
     setTitle('');
@@ -152,6 +150,10 @@ export const SourceStager: React.FC<SourceStagerProps> = ({
 
             <input
               ref={inputRef}
+              type="file"
+              multiple
+              accept={ACCEPT_ATTRIBUTE}
+/* progress step 2 */
               type="file"
               multiple
               accept={ACCEPT_ATTRIBUTE}
