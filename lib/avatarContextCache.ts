@@ -85,14 +85,6 @@ export async function refreshAvatarContextCache(): Promise<AvatarContextSnapshot
   ]);
 
   if (!settings) throw new Error('Publish your persona before starting the avatar.');
-/* progress step 3 */
-        price: true,
-        stock: true,
-        supplier: true,
-        talkingPoints: true,
-      },
-    }),
-  ]);
 
   const knowledge: CachedKnowledge[] = knowledgeRows.map((row) => ({
     id: row.id,
@@ -103,9 +95,16 @@ export async function refreshAvatarContextCache(): Promise<AvatarContextSnapshot
   }));
 
   const snapshot: AvatarContextSnapshot = {
-    persona: PERSONA,
-    openingStatement: findOpening(knowledge),
-    knowledge,
+    persona: settings.persona,
+    instructions: settings.instructions,
+    personaUpdatedAt: settings.savedAt,
+    openingStatement: settings.openingIntro,
+    knowledge: [...knowledge, ...sourceRows.flatMap((row) =>
+      (row.text ?? '').split(/\n\s*\n/).filter((text) => text.trim()).map((text, index) => ({
+        id: `${row.id}:${index}`, title: row.title, category: 'Saved source',
+        content: text.trim(), keywords: [],
+      }))
+    )],
     catalogue: skuRows.map((row) => ({
       id: row.id,
       sku: row.sku,
@@ -113,6 +112,9 @@ export async function refreshAvatarContextCache(): Promise<AvatarContextSnapshot
       category: row.category,
       price: new Prisma.Decimal(row.price).toString(),
       stock: row.stock,
+      supplier: row.supplier,
+      talkingPoints: row.talkingPoints.map((point) => compact(point, 180)),
+/* progress step 4 */
       supplier: row.supplier,
       talkingPoints: row.talkingPoints.map((point) => compact(point, 180)),
     })),
