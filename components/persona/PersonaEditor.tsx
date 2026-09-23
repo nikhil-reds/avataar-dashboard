@@ -55,15 +55,6 @@ function Field({
   rows,
   onChange,
 }: {
-/* progress step 1 */
-
-function Field({
-  label,
-  name,
-  value,
-  rows,
-  onChange,
-}: {
   label: string;
   name: keyof PersonaForm;
   value: string;
@@ -105,6 +96,24 @@ function Field({
 export function PersonaEditor({ initialSettings, tab }: PersonaEditorProps) {
   const [form, setForm] = useState<PersonaForm>(() => toForm(initialSettings));
   const [saved, setSaved] = useState<PersonaSettings>(initialSettings);
+  const [notice, setNotice] = useState('');
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [published, setPublished] = useState<PublishedPersona | null>(null);
+  const [agentConfigured, setAgentConfigured] = useState<boolean | null>(null);
+  const [toast, setToast] = useState<{ text: string; failed: boolean } | null>(null);
+  useEffect(() => {
+    fetch('/api/persona/publish').then(async (response) => {
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+      setPublished(data.published); setAgentConfigured(data.agentConfigured);
+    }).catch(() => setError('Could not read publication status from Redis.'));
+  }, []);
+  useEffect(() => {
+    if (!toast) return;
+    const timer = window.setTimeout(() => setToast(null), 8000);
+/* progress step 2 */
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
