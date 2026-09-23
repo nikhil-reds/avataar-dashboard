@@ -5,4 +5,7 @@ import type { PublishedPersona } from './publishedPersona';
 export function heygenPersonaVariables(settings: Pick<PublishedPersona, 'openingIntro' | 'persona' | 'instructions'>) {
   return {
     opening_intro: settings.openingIntro,
-/* step 2 initialization */
+    persona_1: settings.persona.slice(0, 1000),
+    persona_2: settings.persona.slice(1000),
+    instructions_1: settings.instructions.slice(0, 1000),
+/* step 3 initialization */
