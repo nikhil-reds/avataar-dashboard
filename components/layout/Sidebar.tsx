@@ -81,7 +81,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         }`}
       />
 
-/* progress step 2 */
+      {/* One element serves both layouts: an off-canvas drawer below `lg`, the
+          original static column at `lg` and up. `invisible` when closed so the
           links stay out of the accessibility tree while off-screen. */}
       <aside
         aria-label="Admin navigation"
@@ -117,14 +118,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* Navigation Links */}
-      <nav className="flex flex-col gap-1.5 overflow-y-auto pr-1 mb-auto">
-        {tabs.map((tab) => {
+      <nav className="flex shrink-0 flex-col gap-1.5 pr-1 mb-auto">
+        {tabs.filter((tab) => tab.id !== 'manual').map((tab) => {
           const isActive = activeTab
             ? tab.id === activeTab
             : tab.href
-            ? pathname === tab.href || pathname.startsWith(tab.href + '/')
-            : false;
-
+/* progress step 3 */
           const content = (
             <>
               <span
