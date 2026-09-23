@@ -12,7 +12,6 @@ const TRIGGER_DELTA = 36;
 export function HomeExperience() {
   const [phase, setPhase] = useState<AvatarPhase>('idle');
   const [startKey, setStartKey] = useState<number | undefined>(undefined);
-  const [stopKey, setStopKey] = useState<number | undefined>(undefined);
   const touchStartYRef = useRef<number | null>(null);
   const startedRef = useRef(false);
 
@@ -25,10 +24,6 @@ export function HomeExperience() {
     startedRef.current = true;
     setStartKey((key) => (key === undefined ? 1 : key + 1));
   }, [phase]);
-
-  const requestStop = useCallback(() => {
-    setStopKey((key) => (key === undefined ? 1 : key + 1));
-  }, []);
 
   useEffect(() => {
     if (phase === 'ended' || phase === 'idle') startedRef.current = false;
@@ -66,24 +61,14 @@ export function HomeExperience() {
     <main className="relative h-dvh min-h-[42rem] w-full overflow-hidden bg-[#020219] text-white">
       <AvatarPanel
         autoStartKey={startKey}
-        autoStopKey={stopKey}
         className={`absolute inset-0 z-40 bg-transparent transition-opacity duration-700 ${
           introVisible ? 'pointer-events-none opacity-0' : 'opacity-100'
         }`}
         showIdleScreen={false}
         showStageControl={false}
+        showDisconnectControl
         onPhaseChange={setPhase}
       />
-
-      {isLive && (
-        <button
-          type="button"
-          onClick={requestStop}
-          className="absolute right-[max(1rem,env(safe-area-inset-right))] top-[max(1rem,env(safe-area-inset-top))] z-50 rounded-full border border-white/20 bg-black/45 px-4 py-2 text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-white shadow-[0_8px_28px_rgba(0,0,0,0.35)] backdrop-blur-md active:scale-95"
-        >
-          Disconnect
-        </button>
-      )}
 
       <section
         aria-hidden={isLive}

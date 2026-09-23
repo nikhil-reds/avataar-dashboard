@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import styles from './TapToTalkControl.module.css';
 
 interface TapToTalkControlProps {
   disabled?: boolean;
@@ -17,7 +18,7 @@ export function TapToTalkControl({ disabled = false, label, onActivate }: TapToT
         disabled={disabled}
         onClick={onActivate}
         aria-label={label}
-        className="group absolute left-[42.222%] top-[60.521%] z-30 h-[34.844%] w-[15.556%] transition-transform duration-300 active:scale-[0.98] disabled:cursor-wait"
+        className={`${styles.control} group absolute left-[42.222%] top-[60.521%] z-30 h-[34.844%] w-[15.556%] cursor-pointer transition-transform duration-300 active:scale-[0.98] disabled:cursor-wait`}
       >
         <Image
           src="/figma/avtaar-home/tap-control.svg"
