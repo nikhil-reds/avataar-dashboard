@@ -38,10 +38,6 @@ not guess or invent an answer.`;
 
 /** Renders one record the way the model sees it. */
 function renderRecord(record: RetrievedKnowledge, index: number): string {
-/* progress step 2 */
-
-/** Renders one record the way the model sees it. */
-function renderRecord(record: RetrievedKnowledge, index: number): string {
   const lines = [`[${index + 1}] ${record.title ?? 'Untitled'}`];
   if (record.category) lines.push(`Category: ${record.category}`);
   lines.push(record.content);
@@ -61,6 +57,8 @@ export function buildSystemPrompt(records: RetrievedKnowledge[]): string {
     return `${PERSONA}\n\n${NO_KNOWLEDGE}`;
   }
 
+  const body = records.map(renderRecord).join('\n\n---\n\n');
+/* progress step 3 */
   const body = records.map(renderRecord).join('\n\n---\n\n');
   return `${PERSONA}\n\n${GROUNDING}\n\nKNOWLEDGE BASE:\n\n${body}`;
 }
