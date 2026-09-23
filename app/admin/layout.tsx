@@ -57,19 +57,23 @@ async function renderAdminLayout({
 
   const tabs = TAB_DEFINITIONS.map((tab) => ({
     ...tab,
-/* progress step 3 */
-  const badges = await getNavBadges();
-
-  const counts: Partial<Record<TabId, number>> = {
-    conversations: badges.conversations,
-    catalogue: badges.skusInReview,
-    ingest: badges.ingestJobs,
-  };
-
-  const tabs = TAB_DEFINITIONS.map((tab) => ({
-    ...tab,
     badge: counts[tab.id] ? String(counts[tab.id]) : '',
   }));
 
   return <AdminShell tabs={tabs} user={user}>{children}</AdminShell>;
+}
+
+export default async function AdminLayout(props: { children: React.ReactNode }) {
+  try {
+    return await renderAdminLayout(props);
+  } catch (error) {
+    const code = error && typeof error === 'object' && 'code' in error ? error.code : null;
+    const connectionMessage = error instanceof Error &&
+      /Can't reach database server|Connection timed out|Server has closed the connection/i.test(error.message);
+    if (code === 'P1001' || code === 'P1002' || code === 'P1017' || connectionMessage) {
+      console.error('[admin] Database connection unavailable');
+      return <DatabaseUnavailable />;
+    }
+    throw error;
+  }
 }
