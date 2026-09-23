@@ -84,9 +84,9 @@ export default function AvatarPanel({
   const startingRef     = useRef(false);
   const turnsRef        = useRef<TurnManager | null>(null);
 
-  // Set from the token response. In `redis` and `local` modes this app writes the words
+  // Set from the token response. In legacy `redis` mode this app writes the words
   // and LiveAvatar only speaks them; `heygen` lets LiveAvatar's own agent answer.
-  const brainRef        = useRef<AvatarBrain>('local');
+  const brainRef        = useRef<AvatarBrain>('heygen');
   const historyRef      = useRef<ChatTurn[]>([]);
   const appSpeechRef    = useRef<{ text: string; until: number } | null>(null);
   const listeningPausedForSpeechRef = useRef(false);
@@ -155,7 +155,7 @@ export default function AvatarPanel({
           body: JSON.stringify({
             message: question,
             history: historyRef.current,
-            sessionId: recorder.currentSessionId(),
+/* progress step 1 */
           }),
         });
 
