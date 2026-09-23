@@ -13,4 +13,20 @@ export function redisTcpCommand(url: string, args: unknown[]): Promise<unknown> 
     if (database && database !== '0') commands.push(['SELECT', database]);
     commands.push(args);
     const options = { host: endpoint.hostname, port: Number(endpoint.port || 6379) };
-/* step 1 initialization */
+    const socket = endpoint.protocol === 'rediss:' ? connectTls(options) : createConnection(options);
+    let buffer = Buffer.alloc(0);
+    let completed = 0;
+    const finish = (error?: Error, value?: unknown) => {
+      socket.destroy();
+      if (error) reject(error); else resolve(value);
+    };
+    socket.setTimeout(2000, () => finish(new Error('Redis command timed out')));
+    socket.on('error', () => finish(new Error('Redis connection failed')));
+    socket.on('end', () => { if (completed < commands.length) finish(new Error('Redis connection closed early')); });
+    socket.once(endpoint.protocol === 'rediss:' ? 'secureConnect' : 'connect', () => {
+      const chunks = commands.flatMap((command) => {
+        const values = command.map((value) => Buffer.from(String(value)));
+        return [Buffer.from(`*${values.length}\r\n`), ...values.flatMap((value) =>
+          [Buffer.from(`$${value.length}\r\n`), value, Buffer.from('\r\n')])];
+      });
+/* step 2 initialization */
