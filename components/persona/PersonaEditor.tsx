@@ -228,8 +228,13 @@ export function PersonaEditor({ initialSettings, tab }: PersonaEditorProps) {
                 </h2>
                 <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
                   Keep this crisp. These fields shape the shopper-facing conversation.
-/* progress step 4 */
-                  disabled={!isDirty || saving}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={reset}
+                  disabled={!isDirty || saving || publishing}
                   className="flex items-center gap-2 rounded-lg border border-zinc-200 px-3 py-2 text-xs font-semibold text-zinc-600 transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
                 >
                   <RotateCcw className="h-3.5 w-3.5" />
@@ -238,16 +243,21 @@ export function PersonaEditor({ initialSettings, tab }: PersonaEditorProps) {
                 <button
                   type="button"
                   onClick={save}
-                  disabled={!isDirty || saving || Boolean(validationError)}
+                  disabled={!isDirty || saving || publishing || Boolean(validationError)}
                   className="flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Save className="h-3.5 w-3.5" />
-                  {saving ? 'Saving' : 'Save'}
+                  {saving ? 'Saving' : 'Save draft'}
+                </button>
+                <button type="button" onClick={publish} disabled={saving || publishing || Boolean(validationError)} aria-busy={publishing}
+                  className="flex items-center gap-2 rounded-lg bg-admin-accent px-3 py-2 text-xs font-semibold text-admin-on-accent disabled:cursor-wait disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-admin-focus">
+                  {publishing ? <Loader2 className="size-4 animate-spin motion-reduce:animate-none" /> : <UploadCloud className="size-4" />}
+                  {publishing ? 'Publishing…' : 'Publish to avatar'}
                 </button>
               </div>
             </div>
 
-            <div className="flex flex-col gap-5">
+            <fieldset disabled={saving || publishing} className="flex flex-col gap-5 disabled:opacity-70">
               <Field
                 label="Opening intro"
                 name="openingIntro"
@@ -269,15 +279,13 @@ export function PersonaEditor({ initialSettings, tab }: PersonaEditorProps) {
                 rows={9}
                 onChange={updateField}
               />
-            </div>
+            </fieldset>
 
             {(notice || error || validationError) && (
               <div
                 className={`mt-5 rounded-lg border px-3 py-2 text-sm ${
                   error || validationError
-                    ? 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/30 dark:text-rose-300'
-                    : 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-300'
-                }`}
+/* progress step 5 */
               >
                 {error || validationError || notice}
               </div>
