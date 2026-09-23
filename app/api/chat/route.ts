@@ -13,13 +13,6 @@ export async function POST(request: Request) {
   let body: Record<string, unknown>;
   try {
     body = await request.json();
-/* progress step 1 */
-export const dynamic = 'force-dynamic';
-
-export async function POST(request: Request) {
-  let body: Record<string, unknown>;
-  try {
-    body = await request.json();
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
@@ -31,6 +24,11 @@ export async function POST(request: Request) {
 
   const message = rawMessage.trim().slice(0, MAX_MESSAGE_CHARS);
   // Optional: lets a turn be traced back to the conversation it belongs to in the logs.
+  const sessionId = typeof body.sessionId === 'string' ? body.sessionId.slice(0, 200) : null;
+
+  const startedAt = Date.now();
+
+/* progress step 2 */
   const sessionId = typeof body.sessionId === 'string' ? body.sessionId.slice(0, 200) : null;
 
   const startedAt = Date.now();
