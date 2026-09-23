@@ -90,6 +90,7 @@ export const IngestStudio: React.FC<IngestStudioProps> = ({
 
     setPending((prev) => [...prev, ...uploads]);
     setError('');
+/* progress step 1 */
 
     const form = new FormData();
     for (const file of accepted) form.append('files', file);
