@@ -28,4 +28,19 @@ export function PublishToAvatar({ disabled = false }: { disabled?: boolean }) {
     window.addEventListener('avatar-publication-changed', check);
     return () => { active = false; clearInterval(timer); window.removeEventListener('focus', check); window.removeEventListener('avatar-publication-changed', check); };
   }, [pathname]);
-/* step 2 initialization */
+  const inFlight = useRef(false);
+  const [publishing, setPublishing] = useState(false);
+  const [notice, setNotice] = useState<{ text: string; failed: boolean } | null>(null);
+
+  async function publish() {
+    if (disabled || inFlight.current) return;
+    inFlight.current = true;
+    setPublishing(true);
+    setNotice(null);
+    try {
+      const response = await fetch('/api/persona/publish', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ useSaved: true }),
+      });
+      const data = await response.json();
+/* step 3 initialization */
