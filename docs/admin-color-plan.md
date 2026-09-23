@@ -59,7 +59,7 @@ Existing photographs, video, and official logo artwork retain their original col
 
 ## Status and interaction rules
 
-/* progress step 2 */
+- Success: check icon plus “Saved”, “Healthy”, or “Completed”.
 - Warning: triangle icon plus “Needs attention” and an actionable explanation.
 - Error: circle-X icon plus “Failed” or “Unavailable”, with a retry action when available.
 - Pending: clock/spinner plus “Queued” or “Processing”.
@@ -75,7 +75,7 @@ Existing photographs, video, and official logo artwork retain their original col
 
 ## Acceptance checks
 
-- Review all nine routes in both themes at desktop and mobile widths.
+- Review all eight routes in both themes at desktop and mobile widths.
 - Check dialogs, drawers, tables, empty/error/loading states, and long account names.
 - Confirm no old indigo, purple, red, green, amber, zinc, or slate color utilities
   remain in admin-owned UI; check gradients, shadows, SVG fills/strokes, and charts.
