@@ -1,6 +1,7 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
+import type { SessionUser } from '@/lib/auth';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
@@ -13,14 +14,16 @@ import {
   FileEdit,
   Brain,
   MessagesSquare,
-  BookOpen,
   UserRoundCog,
   Video,
   X,
+  LogOut,
+  Loader2,
 } from 'lucide-react';
 
 interface SidebarProps {
   tabs: NavTab[];
+  user?: SessionUser;
   activeTab?: TabId;
   onSelectTab?: (id: TabId) => void;
   brandName?: string; // We will default this or ignore it, but keep the prop just in case
@@ -36,7 +39,6 @@ const TAB_ICONS: Record<TabId, React.ReactNode> = {
   catalogue: <Database className="w-[18px] h-[18px]" />,
   ingest: <FileUp className="w-[18px] h-[18px]" />,
   manual: <FileEdit className="w-[18px] h-[18px]" />,
-  knowledge: <BookOpen className="w-[18px] h-[18px]" />,
   avatar: <Video className="w-[18px] h-[18px]" />,
   persona: <UserRoundCog className="w-[18px] h-[18px]" />,
   memory: <Brain className="w-[18px] h-[18px]" />,
@@ -44,6 +46,7 @@ const TAB_ICONS: Record<TabId, React.ReactNode> = {
 
 export const Sidebar: React.FC<SidebarProps> = ({
   tabs,
+  user,
   activeTab,
   onSelectTab,
   brandName = 'TR Fastenings',
@@ -51,6 +54,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onClose,
 }) => {
   const pathname = usePathname();
+  const [loggingOut, setLoggingOut] = useState(false);
+  const [logoutError, setLogoutError] = useState('');
+
+  async function logout() {
+    setLoggingOut(true);
+    setLogoutError('');
+    try {
+      const response = await fetch('/api/sign-out', { method: 'POST' });
+      if (!response.ok) throw new Error('Sign out failed');
+      window.location.replace('/sign-in');
+    } catch {
+      setLogoutError('Unable to log out. Please try again.');
+      setLoggingOut(false);
+    }
+  }
 
   return (
     <>
@@ -166,13 +184,30 @@ export const Sidebar: React.FC<SidebarProps> = ({
         })}
       </nav>
 
+      <div className="mt-auto shrink-0 border-t border-zinc-300 pt-4 dark:border-zinc-700">
+        {user && (
+          <div className="mb-4">
+            <button type="button" onClick={logout} disabled={loggingOut}
+              className="flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-zinc-300 px-3 py-2.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-200/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 disabled:cursor-wait disabled:opacity-60 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800">
+              {loggingOut ? <Loader2 aria-hidden="true" className="size-4 animate-spin motion-reduce:animate-none" /> : <LogOut aria-hidden="true" className="size-4" />}
+              {loggingOut ? 'Logging out…' : 'Log out'}
+            </button>
+            {logoutError && <p role="alert" className="mt-2 text-xs text-red-600 dark:text-red-400">{logoutError}</p>}
+            <div className="mt-4 px-1 select-text">
+              <p className="text-[10px] uppercase tracking-wider text-zinc-500">Signed in as</p>
+              <p className="mt-1 break-words text-sm font-semibold text-zinc-900 dark:text-white">{user.name || user.email}</p>
+              <p className="mt-1 break-all text-xs text-zinc-500 dark:text-zinc-400">{user.email}</p>
+            </div>
+          </div>
+        )}
       {/* Footer / Copyright */}
-      <div className="mt-auto pt-6 px-1 pb-2 flex items-center gap-3 border-t border-zinc-300 dark:border-zinc-700">
+      <div className="px-1 pb-2 flex items-center gap-3">
         <Image src="/logo.jpg" alt={`${brandName} Logo`} width={24} height={24} className="rounded object-cover opacity-80 bg-white" />
         <div className="flex flex-col gap-0.5 text-[11px] font-medium text-zinc-400 dark:text-zinc-500">
           <div>&copy; {new Date().getFullYear()} {brandName}.</div>
           <div>All rights reserved.</div>
         </div>
+      </div>
       </div>
       </aside>
     </>
