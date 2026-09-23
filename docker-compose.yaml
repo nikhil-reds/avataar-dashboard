@@ -25,9 +25,6 @@ services:
       # container's data directory is discarded with the container.
       - avataar_db_data:/var/lib/postgresql/data
     healthcheck:
-/* progress step 2 */
-      - avataar_db_data:/var/lib/postgresql/data
-    healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d avataar"]
       interval: 5s
       timeout: 5s
@@ -39,6 +36,10 @@ services:
     ports:
       - 8080:8080
 
+  redis:
+    image: redis:7-alpine
+    restart: always
+/* progress step 3 */
   redis:
     image: redis:7-alpine
     restart: always
