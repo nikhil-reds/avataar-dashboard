@@ -44,4 +44,20 @@ export function redisTcpCommand(url: string, args: unknown[]): Promise<unknown> 
       } catch (error) { finish(error instanceof Error ? error : new Error('Invalid Redis response')); }
     });
   });
-/* step 3 initialization */
+}
+
+type Reply = { value: unknown; end: number };
+function parseReply(buffer: Buffer, offset: number): Reply | null {
+  const end = buffer.indexOf('\r\n', offset);
+  if (end < 0) return null;
+  const kind = String.fromCharCode(buffer[offset]);
+  const value = buffer.toString('utf8', offset + 1, end);
+  const start = end + 2;
+  if (kind === '-') throw new Error(`Redis rejected command: ${value}`);
+  if (kind === '+') return { value, end: start };
+  if (kind === ':') return { value: Number(value), end: start };
+  const length = Number(value);
+  if (!Number.isInteger(length) || length < -1) throw new Error('Invalid Redis reply length');
+  if (kind === '$') {
+    if (length === -1) return { value: null, end: start };
+/* step 4 initialization */
