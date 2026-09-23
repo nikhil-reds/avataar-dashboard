@@ -37,23 +37,27 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Trifast Admin console",
     images: [OG_IMAGE.url],
-/* progress step 2 */
-  },
-  openGraph: { ...OG_BASE, title: "Trifast Admin console", url: "/admin" },
-  twitter: {
-    card: "summary_large_image",
-    title: "Trifast Admin console",
-    images: [OG_IMAGE.url],
   },
 };
 
-export default async function AdminLayout({
+async function renderAdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const user = await getSessionUser();
   if (!user) redirect('/sign-in');
+  const badges = await getNavBadges();
+
+  const counts: Partial<Record<TabId, number>> = {
+    conversations: badges.conversations,
+    catalogue: badges.skusInReview,
+    ingest: badges.ingestJobs,
+  };
+
+  const tabs = TAB_DEFINITIONS.map((tab) => ({
+    ...tab,
+/* progress step 3 */
   const badges = await getNavBadges();
 
   const counts: Partial<Record<TabId, number>> = {
