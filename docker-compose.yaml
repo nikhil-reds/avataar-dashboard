@@ -39,15 +39,16 @@ services:
   redis:
     image: redis:7-alpine
     restart: always
-/* progress step 3 */
-  redis:
-    image: redis:7-alpine
-    restart: always
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     volumes:
       - avataar_redis_data:/data
     command: ["redis-server", "--appendonly", "yes"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
 volumes:
   avataar_db_data:
