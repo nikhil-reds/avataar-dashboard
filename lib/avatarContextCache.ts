@@ -27,11 +27,11 @@ export interface CachedSku {
   supplier: string | null;
   talkingPoints: string[];
 }
-/* progress step 1 */
-}
 
 export interface AvatarContextSnapshot {
   persona: string;
+  instructions: string;
+  personaUpdatedAt: string;
   openingStatement: string;
   knowledge: CachedKnowledge[];
   catalogue: CachedSku[];
@@ -41,20 +41,22 @@ export interface AvatarContextSnapshot {
 export const FALLBACK_OPENING =
   'Hi, I am ready to help with product details, specifications, stock and lead times.';
 
-const PERSONA =
-  'You are a concise shopping assistant. Speak naturally, answer in one short sentence, and never invent details.';
-
 function compact(text: string, max = MAX_CONTENT_CHARS) {
   const normalized = text.replace(/\s+/g, ' ').trim();
   return normalized.length > max ? `${normalized.slice(0, max - 1).trim()}…` : normalized;
 }
 
-function findOpening(knowledge: CachedKnowledge[]) {
-  const opening = knowledge.find((row) => {
-    const haystack = `${row.title ?? ''} ${row.category ?? ''} ${row.keywords.join(' ')}`.toLowerCase();
-    return /opening|greeting|intro|persona/.test(haystack);
-  });
-
+export async function refreshAvatarContextCache(): Promise<AvatarContextSnapshot> {
+  const [knowledgeRows, skuRows, settings, sourceRows] = await Promise.all([
+    prisma.avatarKnowledge.findMany({
+      where: { isActive: true },
+      orderBy: { updatedAt: 'desc' },
+      take: MAX_KNOWLEDGE_ROWS,
+      select: {
+        id: true,
+        title: true,
+        category: true,
+/* progress step 2 */
   return opening?.content ? compact(opening.content, 220) : FALLBACK_OPENING;
 }
 
