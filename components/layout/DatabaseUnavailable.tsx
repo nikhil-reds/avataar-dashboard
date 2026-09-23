@@ -7,4 +7,8 @@ export function DatabaseUnavailable() {
         <h1 className="text-xl font-semibold">Admin service temporarily unavailable</h1>
         <p className="mt-3 text-sm leading-6 text-admin-text-secondary">
           We can’t connect to the database right now. Please try again shortly.
-/* step 2 initialization */
+        </p>
+        <button type="button" onClick={() => window.location.reload()}
+          className="mt-6 rounded-lg bg-admin-accent px-5 py-3 text-sm font-semibold text-admin-on-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-admin-focus">
+          Try again
+/* step 3 initialization */
