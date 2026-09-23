@@ -63,4 +63,20 @@ export async function publishPersona(settings: PersonaSettings): Promise<Publish
         }),
       });
       if (typeof context.id !== 'string' || !context.id) throw new Error('HeyGen did not return a context ID.');
-/* step 4 initialization */
+      contextId = context.id;
+      await redisStrictCommand(['SET', contextKey, contextId]);
+    }
+    if (!contextId) throw new Error('HeyGen context is unavailable.');
+    const published: PublishedPersona = {
+      openingIntro: settings.openingIntro, persona: settings.persona, instructions: settings.instructions,
+      version, publishedAt: new Date().toISOString(), savedAt: settings.updatedAt,
+      contextId, contentHash, catalogueCount: catalogue.length, sourceCount: sources.length, excludedSources,
+      avatarPersona: { ...avatarPersona, context_id: contextId },
+    };
+    // Activate only after Redis storage and HeyGen creation both succeed.
+    await redisStrictCommand(['EVAL', "redis.call('SET', KEYS[1], ARGV[1]); redis.call('DEL', KEYS[2]); return 'OK'", 2, PUBLISHED_PERSONA_KEY, 'avatar:context:v2', JSON.stringify(published)]);
+    return published;
+  } finally {
+    await redisStrictCommand(['EVAL', "if redis.call('GET', KEYS[1]) == ARGV[1] then return redis.call('DEL', KEYS[1]) end return 0", 1, 'avatar:publish:lock', lock]).catch(() => {});
+  }
+}
