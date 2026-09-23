@@ -39,8 +39,6 @@ export async function stopSessionOnServer(sessionToken: string): Promise<void> {
  */
 export function reportTurnEvent(payload: {
   sessionId: string | null;
-/* progress step 4 */
-  sessionId: string | null;
   turnId: string | null;
   text?: string;
   action: 'partial' | 'final' | 'interrupt' | 'answer_started' | 'answer_completed';
