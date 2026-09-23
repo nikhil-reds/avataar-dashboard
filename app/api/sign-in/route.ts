@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { prisma } from '@/lib/db';
+import { verifyPassword } from '@/lib/password';
 
 export async function POST(request: Request) {
   let body: { email?: string; password?: string };
@@ -25,53 +26,25 @@ export async function POST(request: Request) {
   const userAgent = request.headers.get('user-agent') || 'Unknown';
 
   try {
-    // 1. Find or create user record using standard User model
-    let user = await prisma.user.findUnique({
-      where: { email: normalizedEmail },
-    });
-
-    if (!user) {
-      user = await prisma.user.create({
-        data: {
-          email: normalizedEmail,
-          name: normalizedEmail.split('@')[0],
-          role: normalizedEmail.includes('admin') ? 'ADMIN' : 'OPERATOR',
-        },
+    const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+    if (!user || !(await verifyPassword(password, user.passwordHash))) {
+      await prisma.signInLog.create({
+        data: { email: normalizedEmail, userId: user?.id, status: 'FAILED', ipAddress: clientIp, userAgent },
       });
+      return NextResponse.json({ error: 'Invalid email or password.' }, { status: 401 });
     }
 
-    // 2. Generate Session Token
     const sessionToken = crypto.randomBytes(32).toString('hex');
-    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
-
-    // 3. Attempt DB session/log creation safely if models exist on Prisma Client
-    try {
-      const p = prisma as unknown as Record<string, { create: (args: unknown) => Promise<unknown> }>;
-      if (p.userSession && typeof p.userSession.create === 'function') {
-        await p.userSession.create({
-          data: {
-            userId: user.id,
-            token: sessionToken,
-            ipAddress: clientIp,
-            userAgent,
-            expiresAt,
-          },
-        });
-      }
-      if (p.signInLog && typeof p.signInLog.create === 'function') {
-        await p.signInLog.create({
-          data: {
-            email: normalizedEmail,
-            userId: user.id,
-            status: 'SUCCESS',
-            ipAddress: clientIp,
-            userAgent,
-          },
-        });
-      }
-    } catch (dbErr) {
-      console.warn('[Sign-In Route DB Log Warning]:', dbErr);
-    }
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    await prisma.$transaction([
+      prisma.userSession.create({
+        data: { userId: user.id, token: sessionToken, ipAddress: clientIp, userAgent, expiresAt },
+      }),
+      prisma.signInLog.create({
+        data: { email: normalizedEmail, userId: user.id, status: 'SUCCESS', ipAddress: clientIp, userAgent },
+      }),
+      prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } }),
+    ]);
 
     // 4. Create Response with Auth Cookie
     const response = NextResponse.json({
