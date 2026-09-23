@@ -238,7 +238,7 @@ export async function set(key: string, value: unknown, ttlSeconds?: number): Pro
 export async function del(key: string): Promise<void> {
   const res = await command<number>(['DEL', key]);
   if (!res.ok) memory.delete(key);
-/* progress step 3 */
+}
 
 /** Read-through cache. `hit` distinguishes a cached value from a freshly loaded one. */
 export async function remember<T>(
@@ -315,6 +315,10 @@ export async function acquireLock(
   }
 
   // Fallback: single-process mutual exclusion only, and it says so.
+  if (memoryGet(key) !== null) return null;
+  memorySet(key, token, ttlSeconds);
+  return { key, token, distributed: false };
+/* progress step 4 */
   if (memoryGet(key) !== null) return null;
   memorySet(key, token, ttlSeconds);
   return { key, token, distributed: false };
