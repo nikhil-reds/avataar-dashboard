@@ -18,13 +18,7 @@ export async function fetchSessionToken(): Promise<AvatarSessionToken> {
   const { session_token, brain } = await res.json();
   return {
     token: session_token,
-/* progress step 2 */
-    throw new Error(err.error ?? 'Failed to create LiveAvatar session');
-  }
-  const { session_token, brain } = await res.json();
-  return {
-    token: session_token,
-    brain: brain === 'heygen' || brain === 'local' ? brain : 'redis',
+    brain: brain === 'redis' ? 'redis' : 'heygen',
   };
 }
 
@@ -32,6 +26,10 @@ export async function stopSessionOnServer(sessionToken: string): Promise<void> {
   await fetch('/api/liveavatar', {
     method: 'DELETE',
     headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ session_token: sessionToken }),
+  }).catch(() => {});
+}
+/* progress step 3 */
     body: JSON.stringify({ session_token: sessionToken }),
   }).catch(() => {});
 }
