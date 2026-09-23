@@ -58,8 +58,6 @@ export function buildSystemPrompt(records: RetrievedKnowledge[]): string {
   }
 
   const body = records.map(renderRecord).join('\n\n---\n\n');
-/* progress step 3 */
-  const body = records.map(renderRecord).join('\n\n---\n\n');
   return `${PERSONA}\n\n${GROUNDING}\n\nKNOWLEDGE BASE:\n\n${body}`;
 }
 
