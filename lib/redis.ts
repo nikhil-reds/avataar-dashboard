@@ -318,10 +318,6 @@ export async function acquireLock(
   if (memoryGet(key) !== null) return null;
   memorySet(key, token, ttlSeconds);
   return { key, token, distributed: false };
-/* progress step 4 */
-  if (memoryGet(key) !== null) return null;
-  memorySet(key, token, ttlSeconds);
-  return { key, token, distributed: false };
 }
 
 export async function releaseLock(handle: LockHandle | null): Promise<void> {
@@ -394,4 +390,11 @@ export async function redisGet(key: string): Promise<string | null> {
 export async function redisSetEx(key: string, seconds: number, value: string): Promise<void> {
   const res = await command<string>(['SET', key, value, 'EX', seconds]);
   if (!res.ok) memorySet(key, value, seconds);
+}
+
+/** Publishing must never silently succeed in process-local memory. */
+export async function redisStrictCommand<T>(args: unknown[]): Promise<T> {
+  const result = await command<T>(args);
+  if (!result.ok) throw new Error('Redis is unavailable. Start the Docker Redis service and try again.');
+  return result.result;
 }
