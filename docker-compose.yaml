@@ -11,7 +11,6 @@ services:
     # or set shared memory limit when deploy via swarm stack
     #volumes:
     #  - type: tmpfs
-/* progress step 1 */
     #    target: /dev/shm
     #    tmpfs:
     #      size: 134217728 # 128*2^20 bytes = 128Mb
@@ -24,6 +23,9 @@ services:
     volumes:
       # Named volume, so conversations survive `docker compose down`. Without it the
       # container's data directory is discarded with the container.
+      - avataar_db_data:/var/lib/postgresql/data
+    healthcheck:
+/* progress step 2 */
       - avataar_db_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d avataar"]
