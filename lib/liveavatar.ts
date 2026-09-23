@@ -8,19 +8,17 @@ export interface AvatarSessionToken {
   brain: AvatarBrain;
 }
 
-/* progress step 1 */
-export type AvatarBrain = 'redis' | 'local' | 'heygen';
-
-export interface AvatarSessionToken {
-  token: string;
-  brain: AvatarBrain;
-}
-
 /** The server decides the brain, so the mode cannot drift between the two sides. */
 export async function fetchSessionToken(): Promise<AvatarSessionToken> {
   const res = await fetch('/api/liveavatar', { method: 'POST' });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
+    throw new Error(err.error ?? 'Failed to create LiveAvatar session');
+  }
+  const { session_token, brain } = await res.json();
+  return {
+    token: session_token,
+/* progress step 2 */
     throw new Error(err.error ?? 'Failed to create LiveAvatar session');
   }
   const { session_token, brain } = await res.json();
