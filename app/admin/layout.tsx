@@ -17,9 +17,6 @@ export const dynamic = 'force-dynamic';
  * the shopper-facing avatar at a glance.
  *
  * Indexing is off across the whole section: this is an internal console with no
-/* progress step 1 */
- *
- * Indexing is off across the whole section: this is an internal console with no
  * public content, and there is nothing here that belongs in search results.
  */
 export const metadata: Metadata = {
@@ -34,6 +31,13 @@ export const metadata: Metadata = {
     follow: false,
     nocache: true,
     googleBot: { index: false, follow: false, noimageindex: true },
+  },
+  openGraph: { ...OG_BASE, title: "Trifast Admin console", url: "/admin" },
+  twitter: {
+    card: "summary_large_image",
+    title: "Trifast Admin console",
+    images: [OG_IMAGE.url],
+/* progress step 2 */
   },
   openGraph: { ...OG_BASE, title: "Trifast Admin console", url: "/admin" },
   twitter: {
