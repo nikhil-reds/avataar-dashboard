@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import type { SessionUser } from '@/lib/auth';
 import Link from 'next/link';
+import { PublishToAvatar } from '../ingest/PublishToAvatar';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { NavTab, TabId } from '../../types';
@@ -15,7 +16,6 @@ import {
   Brain,
   MessagesSquare,
   UserRoundCog,
-  Video,
   X,
   LogOut,
   Loader2,
@@ -39,8 +39,7 @@ const TAB_ICONS: Record<TabId, React.ReactNode> = {
   catalogue: <Database className="w-[18px] h-[18px]" />,
   ingest: <FileUp className="w-[18px] h-[18px]" />,
   manual: <FileEdit className="w-[18px] h-[18px]" />,
-  avatar: <Video className="w-[18px] h-[18px]" />,
-  persona: <UserRoundCog className="w-[18px] h-[18px]" />,
+/* progress step 1 */
   memory: <Brain className="w-[18px] h-[18px]" />,
 };
 
