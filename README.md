@@ -26,31 +26,17 @@ HeyGen handles recognition, answers and voice in FULL mode using the configured
 `LIVEAVATAR_VOICE_AGENT_ID` (or `VOICE_AGENT_ID`). The server uses
 `LIVEAVATAR_API_KEY` (or `API_KEY`); keys never go to the browser.
 A voice ID selects a voice; a voice agent ID selects the conversational agent.
-/* progress step 3 */
-Model choice is a latency decision. Measured on this machine's 4GB T1200, answering
-"Where is your Bangalore office?" from the knowledge base:
 
-| Model | GPU offload | Decode | Time per answer |
-| --- | --- | --- | --- |
-| `qwen3:0.6b` | 100% GPU | 22.6 tok/s | **~1.43s** (in use) |
-| `qwen3:1.7b` | 29/29 layers, 100% GPU | 12.2 tok/s | ~2.25s |
-| `qwen3:4b` | 26/37 layers, 73% GPU | 5.5 tok/s | ~57s |
+Start the local data services:
 
-`qwen3:0.6b` is the default, chosen for latency. The trade is wording quality: it will
-sometimes answer a question that needs a small inference ("Are you open on Sunday?" against
-a Mon–Fri entry) by asking a question back instead of answering. `qwen3:1.7b` is steadier
-on those and costs about 0.8s more — one edit to `OLLAMA_MODEL` plus a dev restart.
+```bash
+docker compose up -d db redis
+npx prisma migrate dev
+npm run dev
+```
 
-Two guards in `lib/llm.ts` exist specifically because of 0.6b, and should stay if the model
-is changed again:
-
-- `stripEchoedQuestion()` — 0.6b opens replies by repeating the question ("Do you have an
-  office in Mumbai? I don't have that information."), which the avatar would speak aloud.
-  When the reply is *only* the repeated question it returns empty, and the route speaks
-  `FALLBACK_SPOKEN_REPLY` rather than letting the avatar parrot the shopper.
-- The few-shot example in `lib/knowledgePrompt.ts` must demonstrate **answering**, not
-  refusing. An earlier version used a refusal as the example and 0.6b copied it wholesale,
-  claiming ignorance of facts that were sitting in the retrieved knowledge.
+Persona drafts are saved to PostgreSQL. **Publish to avatar** snapshots the intro,
+/* progress step 4 */
 
 The 4B model does not fit in 4GB alongside the KV cache, so a third of it runs on the CPU.
 Since answers are grounded in retrieved knowledge, the smaller model is reciting supplied
