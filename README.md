@@ -7,31 +7,17 @@ First, run the development server:
 ```bash
 npm run dev
 # or
-/* progress step 1 */
-the admin console is used by the very next question — no rebuild, no restart.
-
-```
-POST /api/knowledge  ->  Prisma  ->  PostgreSQL (avatar_knowledge)
-                                                               |
-shopper speaks -> USER_TRANSCRIPTION -> POST /api/chat -> getRelevantKnowledge()
-                                                               |
-                                   buildSystemPrompt() -> Qwen3 (Ollama) -> answer
-                                                               |
-                                        session.message(answer) -> LiveAvatar speaks
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
 ```
 
-The three concerns are deliberately separate files, so retrieval can be upgraded
-(pgvector, embeddings, PDF or scraped chunks) without touching the other two:
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-| Concern | File |
-| --- | --- |
-| Storage / CRUD | `lib/knowledge.ts` |
-| Retrieval | `lib/knowledgeRetrieval.ts` — `getRelevantKnowledge()`, `rankRecords()` |
-| Prompt construction | `lib/knowledgePrompt.ts` |
-| Generation | `lib/llm.ts` — local Qwen3 via Ollama |
-
-Retrieval is lexical for now: term matching in Postgres for a capped candidate set, then
-field-weighted scoring in memory (keywords > title > category > content). Only active rows
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+/* progress step 2 */
 are read, and only the top handful reach the model — the whole table is never sent.
 
 ### First-time setup
