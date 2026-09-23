@@ -28,11 +28,6 @@ export async function POST(request: Request) {
 
   const startedAt = Date.now();
 
-/* progress step 2 */
-  const sessionId = typeof body.sessionId === 'string' ? body.sessionId.slice(0, 200) : null;
-
-  const startedAt = Date.now();
-
   try {
     const answer = await answerFromRedisContext(message);
     const latencyMs = Date.now() - startedAt;
@@ -46,6 +41,9 @@ export async function POST(request: Request) {
       detail: `${answer.source} · ${answer.context.knowledgeRows} knowledge · ${answer.context.catalogueRows} sku`,
     }).catch((err) => console.warn('[chat] activity log failed', err));
 
+    return NextResponse.json({
+      response: answer.response,
+/* progress step 3 */
     return NextResponse.json({
       response: answer.response,
       sources: [
