@@ -12,4 +12,11 @@ export async function heygenRequest(path: string, init: RequestInit = {}) {
   if (!response.ok || !result?.data) {
     // Provider error bodies can echo the entire private prompt. Do not expose them.
     throw new Error(`HeyGen context request failed (${response.status}). Check your API access and context size, then retry.`);
-/* step 2 initialization */
+  }
+  return result.data;
+}
+
+export async function publishedVoiceSettings(): Promise<Record<string, unknown>> {
+  const { voiceAgentId, voiceId } = liveAvatarConfig();
+  if (!voiceAgentId) return { language: 'en', ...(voiceId ? { voice_id: voiceId } : {}) };
+/* step 3 initialization */
