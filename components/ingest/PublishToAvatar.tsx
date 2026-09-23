@@ -43,4 +43,19 @@ export function PublishToAvatar({ disabled = false }: { disabled?: boolean }) {
         body: JSON.stringify({ useSaved: true }),
       });
       const data = await response.json();
-/* step 3 initialization */
+      if (!response.ok) throw new Error(data.error || 'Publishing failed. Please retry.');
+      window.dispatchEvent(new Event('avatar-publication-changed'));
+      const excluded = data.published.excludedSources?.length ?? 0;
+      setNotice({ failed: false, text: `Your saved persona, opening intro, instructions, ${data.published.sourceCount} sources and ${data.published.catalogueCount ?? 0} catalogue items are now synced to Redis and HeyGen. Reconnect the avatar to use this version.${excluded ? ` ${excluded} sources excluded because extraction is required or ingest failed. See Persona for details.` : ''}` });
+    } catch (error) {
+      setNotice({ failed: true, text: error instanceof Error ? error.message : 'Publishing failed. Please retry.' });
+    } finally {
+      inFlight.current = false;
+      setPublishing(false);
+    }
+  }
+
+  return <>
+    <div className="flex flex-col gap-1">
+    <button type="button" onClick={publish} disabled={disabled || publishing} aria-busy={publishing}
+/* step 4 initialization */
