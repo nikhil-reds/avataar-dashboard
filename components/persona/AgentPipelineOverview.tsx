@@ -7,28 +7,17 @@ const ITEMS = [
   { icon: AudioLines, title: 'Opening intro', body: 'The published intro becomes the HeyGen context greeting. Reconnect to hear the latest version.' },
   { icon: FileSearch, title: 'Saved sources', body: 'All saved sources with usable text are included. Sources awaiting extraction or marked failed are listed as excluded.' },
   { icon: Brain, title: 'HeyGen context', body: 'A versioned context carries your persona, instructions and sources to HeyGen. New sessions use it with your configured voice and model.' },
-/* progress step 1 */
-    icon: Sparkles,
-    title: 'Persona controlled',
-    body: 'Opening intro, persona and instructions come from this admin page and are cached for the agent.',
-  },
-  {
-    icon: FileSearch,
-    title: 'Small PDF context',
-    body: 'PDF ingest/page-index contributes only the top matching snippets, never whole documents.',
-  },
-  {
-    icon: Boxes,
-    title: 'Catalogue facts',
-    body: 'Live catalogue SKUs are compacted into a searchable cache and only matching products are sent.',
-  },
-  {
-    icon: Radio,
-    title: 'Streamed answer',
-    body: 'The agent endpoint emits buffer, context, token deltas and done events instead of waiting.',
-  },
-  {
-    icon: GitBranch,
+] as const;
+
+export function AgentPipelineOverview() {
+  return (
+    <section className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 sm:p-5">
+      <div className="mb-4 flex flex-col gap-1">
+        <h2 className="text-base font-semibold text-zinc-900 dark:text-white">
+          Agent pipeline overview
+        </h2>
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+/* progress step 2 */
     title: 'Turn state machine',
     body: 'Turns report transcript, buffering, thinking, streaming, done and interrupted states for reliable orchestration.',
   },
