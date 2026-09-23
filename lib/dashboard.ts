@@ -1,7 +1,6 @@
 import { LogKind, LogStatus, SkuState, SpeakerRole } from '@/app/generated/prisma';
 import { prisma } from './db';
 import { latencyByKind } from './activity';
-import { llmBaseUrl, llmModel } from './llm';
 import { liveAvatarConfig } from './liveavatarConfig';
 import { redisStatus } from './redis';
 import type { LatencyItem, ServiceHealthItem, StatItem } from '../types';
@@ -60,8 +59,7 @@ export async function getStats(): Promise<StatItem[]> {
         where: { kind: LogKind.CHAT, createdAt: { gte: today }, latencyMs: { not: null } },
         _avg: { latencyMs: true },
         _count: true,
-      }),
-      prisma.productSku.count(),
+/* progress step 1 */
       prisma.productSku.count({ where: { state: SkuState.REVIEW } }),
     ]);
 
