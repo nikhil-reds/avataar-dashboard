@@ -28,41 +28,37 @@ async function configuredVoiceExists(apiKey: string, voiceId: string): Promise<b
 
 export async function POST() {
   const { apiKey, voiceId, voiceAgentId } = liveAvatarConfig();
-/* progress step 1 */
-
-  // Who answers the shopper. `redis` is the fast app-owned brain; LiveAvatar only
-  // supplies the streamed avatar and voice.
-  const configuredBrain = process.env.AVATAR_BRAIN;
-  const brain = configuredBrain === 'heygen' || configuredBrain === 'local' ? configuredBrain : 'redis';
-
-  let requestedMode: 'FULL' | 'LITE' = 'FULL';
-  try {
-    const body = await request.json();
-    if (body?.mode === 'LITE') requestedMode = 'LITE';
-  } catch {
-    // Existing callers send no body; keep that path as FULL mode.
+  if (!apiKey) {
+    return NextResponse.json({ error: 'LIVEAVATAR_API_KEY not configured' }, { status: 500 });
   }
+
+  // HeyGen owns speech recognition, answer generation and voice.
+  const brain = 'heygen';
+  const requestedMode = 'FULL';
 
   const config = resolveAvatarConfig();
   const { source, avatarId, contextId, isSandbox } = config;
-  // A context is what gives HeyGen's agent its own opinions. Attaching one while this app
-  // is also answering would have both of them reply to every question, so it is attached
-  // only when HeyGen is the brain. A voice agent already owns its voice/model/context.
-  const useVoiceAgent = brain === 'heygen' && Boolean(voiceAgentId);
-  const useHeyGenContext = brain === 'heygen' && Boolean(contextId) && !useVoiceAgent;
+  let published;
+  try { published = await getPublishedPersona(); }
+  catch { return NextResponse.json({ error: 'Cannot read the published avatar context from Redis. Please retry.' }, { status: 503 }); }
+  const usePublishedContext = Boolean(published?.contextId && published.avatarPersona);
+  const useVoiceAgent = !usePublishedContext && Boolean(voiceAgentId);
+  const useHeyGenContext = !usePublishedContext && Boolean(contextId) && !useVoiceAgent;
 
   const body: Record<string, unknown> = {
     mode: requestedMode,
     avatar_id: avatarId,
   };
 
-  if (useVoiceAgent) {
+  if (usePublishedContext) {
+    // Inline FULL mode attaches our versioned context while preserving the agent's voice/model.
+    body.avatar_persona = published!.avatarPersona;
+  } else if (useVoiceAgent) {
     body.voice_agent = { id: voiceAgentId, language: 'en' };
   } else {
     body.avatar_persona = { language: 'en' };
 
-    if (voiceId && !(await configuredVoiceExists(apiKey, voiceId))) {
-      return NextResponse.json(
+/* progress step 2 */
         { error: `VOICE_ID ${voiceId} was not found in LiveAvatar` },
         { status: 400 }
       );
