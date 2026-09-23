@@ -114,9 +114,6 @@ export async function refreshAvatarContextCache(): Promise<AvatarContextSnapshot
       stock: row.stock,
       supplier: row.supplier,
       talkingPoints: row.talkingPoints.map((point) => compact(point, 180)),
-/* progress step 4 */
-      supplier: row.supplier,
-      talkingPoints: row.talkingPoints.map((point) => compact(point, 180)),
     })),
     refreshedAt: new Date().toISOString(),
   };
@@ -126,6 +123,8 @@ export async function refreshAvatarContextCache(): Promise<AvatarContextSnapshot
 }
 
 export async function getAvatarContextSnapshot(): Promise<AvatarContextSnapshot> {
+  const published = await getPublishedPersona();
+  if (!published) throw new Error('Publish your persona before starting the avatar.');
   const cached = await redisGet(CONTEXT_KEY).catch((err) => {
     console.warn('[redis] avatar context read failed', err);
     return null;
@@ -133,7 +132,10 @@ export async function getAvatarContextSnapshot(): Promise<AvatarContextSnapshot>
 
   if (cached) {
     try {
-      return JSON.parse(cached) as AvatarContextSnapshot;
+      return { ...(JSON.parse(cached) as AvatarContextSnapshot),
+        persona: published.persona, instructions: published.instructions,
+        openingStatement: published.openingIntro, personaUpdatedAt: published.savedAt,
+      };
     } catch (err) {
       console.warn('[redis] avatar context was invalid, rebuilding', err);
     }
