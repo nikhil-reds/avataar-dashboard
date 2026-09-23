@@ -5,6 +5,75 @@
    OS media query, so the header toggle controls the whole app. */
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
+/* Home screen palette: shared CSS variables and Tailwind color utilities. */
+@theme static {
+  --color-home-foreground: #FFFFFF;
+  --color-home-accent: #0085FF;
+  --color-home-background: #0D0E12;
+  --color-home-background-raised: #12141D;
+  --color-home-panel: #2C2C2C;
+  --color-home-border: #383838;
+  --color-home-subtext: #E0E0E0;
+  --color-home-status: #A1A1A1;
+}
+
+/* Admin palette. Use semantic admin utilities when migrating admin components. */
+:root {
+  --admin-white: #FFFFFF;
+  --admin-black: #000000;
+  --admin-blue: #0085FF;
+  --admin-charcoal: #0D0E12;
+  --admin-charcoal-raised: #12141D;
+  --admin-gray-panel: #2C2C2C;
+  --admin-gray-border: #383838;
+  --admin-gray-light: #E0E0E0;
+  --admin-gray-muted: #A1A1A1;
+}
+
+:root,
+[data-theme="light"] {
+  --admin-canvas: var(--admin-gray-light);
+  --admin-surface: var(--admin-white);
+  --admin-surface-raised: var(--admin-white);
+  --admin-hover: var(--admin-gray-light);
+  --admin-border: var(--admin-gray-muted);
+  --admin-text: var(--admin-charcoal);
+  --admin-text-secondary: var(--admin-gray-panel);
+  --admin-text-muted: var(--admin-gray-border);
+  --admin-selected-bg: var(--admin-charcoal-raised);
+  --admin-selected-text: var(--admin-white);
+}
+
+[data-theme="dark"] {
+  --admin-canvas: var(--admin-charcoal);
+  --admin-surface: var(--admin-charcoal-raised);
+  --admin-surface-raised: var(--admin-gray-panel);
+  --admin-hover: var(--admin-gray-border);
+  --admin-border: var(--admin-gray-border);
+  --admin-text: var(--admin-white);
+  --admin-text-secondary: var(--admin-gray-light);
+  --admin-text-muted: var(--admin-gray-muted);
+  --admin-selected-bg: var(--admin-gray-panel);
+  --admin-selected-text: var(--admin-white);
+}
+
+@theme inline {
+  --color-admin-canvas: var(--admin-canvas);
+  --color-admin-surface: var(--admin-surface);
+  --color-admin-surface-raised: var(--admin-surface-raised);
+  --color-admin-hover: var(--admin-hover);
+  --color-admin-border: var(--admin-border);
+  --color-admin-text: var(--admin-text);
+  --color-admin-text-secondary: var(--admin-text-secondary);
+  --color-admin-text-muted: var(--admin-text-muted);
+  --color-admin-selected: var(--admin-selected-bg);
+  --color-admin-selected-text: var(--admin-selected-text);
+  --color-admin-accent: var(--admin-blue);
+  --color-admin-on-accent: var(--admin-black);
+  --color-admin-focus: var(--admin-blue);
+  --color-admin-overlay: var(--admin-black);
+}
+
 :root,
 [data-theme="light"] {
   color-scheme: light;
