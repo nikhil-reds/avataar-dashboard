@@ -26,7 +26,7 @@ The avatar answers from rows in Postgres, not from any file in the repo. Knowled
 the admin console is used by the very next question — no rebuild, no restart.
 
 ```
-/admin/knowledge  ->  POST /api/knowledge  ->  Prisma  ->  PostgreSQL (avatar_knowledge)
+POST /api/knowledge  ->  Prisma  ->  PostgreSQL (avatar_knowledge)
                                                                |
 shopper speaks -> USER_TRANSCRIPTION -> POST /api/chat -> getRelevantKnowledge()
                                                                |
@@ -58,7 +58,7 @@ npx prisma migrate dev
 npm run dev
 ```
 
-Then open <http://localhost:3000/admin/knowledge> and add entries.
+The Knowledge admin page has been removed. The `/api/knowledge` endpoints and existing stored knowledge remain available.
 
 To copy the legacy `app/constants/knowledge.ts` into the database (safe to re-run; it
 upserts on a stable `importKey` rather than duplicating):
