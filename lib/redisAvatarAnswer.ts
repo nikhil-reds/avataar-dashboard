@@ -38,6 +38,7 @@ function shorten(text: string, maxWords = MAX_WORDS) {
   const shortened = words.length > maxWords ? `${words.slice(0, maxWords).join(' ')}.` : firstSentence;
   return shortened.replace(/\s+/g, ' ').trim();
 }
+/* progress step 1 */
 
 function countMatches(haystack: string, needles: string[]) {
   const normalized = haystack.toLowerCase();
