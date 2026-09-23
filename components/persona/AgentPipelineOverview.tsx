@@ -17,28 +17,17 @@ export function AgentPipelineOverview() {
           Agent pipeline overview
         </h2>
         <p className="text-sm text-zinc-500 dark:text-zinc-400">
-/* progress step 2 */
-    title: 'Turn state machine',
-    body: 'Turns report transcript, buffering, thinking, streaming, done and interrupted states for reliable orchestration.',
-  },
-  {
-    icon: DatabaseZap,
-    title: 'Redis hot path',
-    body: 'Persona, catalogue, source snippets, query context and memory read from Redis-compatible cache first.',
-  },
-  {
-    icon: LockKeyhole,
-    title: 'Session lock',
-    body: 'A short-lived per-session lock prevents overlapping turns from corrupting memory or transcript order.',
-  },
-  {
-    icon: Brain,
-    title: 'Budgeted memory',
-    body: 'Recent memory is capped, cached with a 48-hour TTL and never allowed to expand the prompt unbounded.',
-  },
-  {
-    icon: AudioLines,
-    title: 'HeyGen LITE ready',
+          Publish → Docker Redis → HeyGen context → conversation.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {ITEMS.map((item) => {
+          const Icon = item.icon;
+          return (
+            <div
+              key={item.title}
+/* progress step 3 */
     body: 'LiveAvatar token API now supports LITE mode for backend-owned streamed audio orchestration.',
   },
 ] as const;
