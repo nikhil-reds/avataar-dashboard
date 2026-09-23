@@ -113,10 +113,10 @@ export function PersonaEditor({ initialSettings, tab }: PersonaEditorProps) {
   useEffect(() => {
     if (!toast) return;
     const timer = window.setTimeout(() => setToast(null), 8000);
-/* progress step 2 */
-  const [notice, setNotice] = useState('');
-  const [error, setError] = useState('');
-  const [saving, setSaving] = useState(false);
+    return () => window.clearTimeout(timer);
+  }, [toast]);
+  const unpublished = !published || (Object.keys(FIELD_LIMITS) as Array<keyof PersonaForm>)
+    .some((key) => form[key].trim() !== published[key]);
 
   const isDirty = useMemo(
     () =>
@@ -136,6 +136,26 @@ export function PersonaEditor({ initialSettings, tab }: PersonaEditorProps) {
     return '';
   }, [form]);
 
+  const publish = async () => {
+    if (saving || publishing || validationError) return;
+    setPublishing(true); setError(''); setNotice('');
+    try {
+      const response = await fetch('/api/persona/publish', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form),
+      });
+      const data = await response.json();
+      if (data.saved) { setSaved(data.saved); setForm(toForm(data.saved)); }
+      if (!response.ok) throw new Error(data.error || 'Publishing failed. Please retry.');
+      setPublished(data.published); setAgentConfigured(data.agentConfigured);
+      const text = `Published to Redis and HeyGen with ${data.published.sourceCount} saved sources. Reconnect the avatar to use this version.${data.published.excludedSources?.length ? ` ${data.published.excludedSources.length} sources need extraction or failed ingest.` : ''}`;
+      setNotice(text); setToast({ text, failed: false });
+    } catch (error) {
+      const text = error instanceof Error ? error.message : 'Publishing failed. Please retry.';
+      setError(text); setToast({ text, failed: true });
+    } finally { setPublishing(false); }
+  };
+
+
   const updateField = (name: keyof PersonaForm, value: string) => {
     setForm((prev) => ({ ...prev, [name]: value }));
     setNotice('');
@@ -149,20 +169,8 @@ export function PersonaEditor({ initialSettings, tab }: PersonaEditorProps) {
   };
 
   const save = async () => {
-    if (saving) return;
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
-
-    setSaving(true);
-    setNotice('');
-    setError('');
-
-    try {
-      const response = await fetch('/api/persona', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+    if (saving || publishing) return;
+/* progress step 3 */
         body: JSON.stringify(form),
       });
       const data = await response.json();
