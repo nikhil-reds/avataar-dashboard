@@ -36,32 +36,16 @@ npm run dev
 ```
 
 Persona drafts are saved to PostgreSQL. **Publish to avatar** snapshots the intro,
-/* progress step 4 */
+persona, instructions and every saved ingest source with usable text into Docker Redis.
+It creates an immutable HeyGen context with the intro as `opening_text` and the persona,
+instructions and complete source text in `prompt`. Failed or unextracted sources are
+listed as excluded; content is not silently truncated.
 
-The 4B model does not fit in 4GB alongside the KV cache, so a third of it runs on the CPU.
-Since answers are grounded in retrieved knowledge, the smaller model is reciting supplied
-facts rather than recalling them from training, which is why 1.7B is enough here. On a
-larger GPU, raise `OLLAMA_MODEL` to `qwen3:4b` or `qwen3:8b`.
-
-**Thinking must stay suppressed.** Qwen3 is a hybrid reasoning model and the avatar speaks
-whatever text it is handed, so deliberation must never reach it. Two defences, both needed:
-`/no_think` in the system prompt stops it being generated, and `stripReasoning()` in
-`lib/llm.ts` removes it if it appears anyway. Note that Ollama's `think: false` alone was
-*not* sufficient here — the model still deliberated, in plain text, and took 49s instead of
-15s for a one-line greeting. The reply also arrives with a *dangling* `</think>` and no
-opening tag, because the chat template supplies the opener; a stripper that only matches
-balanced pairs would let the entire monologue through to the avatar's mouth.
-
-### Latency
-
-Measured end to end through `/api/chat`, warm: **~1.8s**, and it breaks down as
-
-| Phase | Time |
-| --- | --- |
-| knowledge retrieval (Postgres) | ~5ms |
-| prefill (~235 prompt tokens) | ~90ms |
-| **decode (~18 output tokens)** | **~1700ms** |
-
+New sessions read the active context ID from Redis and use the supported inline
+`avatar_persona` FULL-mode configuration, preserving the configured LiveAvatar agent's
+voice, model, language and speech settings. The stored agent itself is not modified.
+Redis is required for session startup, so a cache outage cannot silently drop your context.
+/* progress step 5 */
 Decode is ~98% of it and its cost is linear in tokens generated, so **answer length is the
 latency dial**. Tightening the prompt from "2-4 sentences" to "one sentence, max 40 words"
 took a measured 3545ms to 2148ms on its own; `num_predict` is capped at 80 to stop a
