@@ -29,4 +29,19 @@ export function redisTcpCommand(url: string, args: unknown[]): Promise<unknown> 
         return [Buffer.from(`*${values.length}\r\n`), ...values.flatMap((value) =>
           [Buffer.from(`$${value.length}\r\n`), value, Buffer.from('\r\n')])];
       });
-/* step 2 initialization */
+      socket.write(Buffer.concat(chunks));
+    });
+    socket.on('data', (chunk) => {
+      buffer = Buffer.concat([buffer, chunk]);
+      try {
+        while (completed < commands.length) {
+          const parsed = parseReply(buffer, 0);
+          if (!parsed) return;
+          buffer = buffer.subarray(parsed.end);
+          completed++;
+          if (completed === commands.length) finish(undefined, parsed.value);
+        }
+      } catch (error) { finish(error instanceof Error ? error : new Error('Invalid Redis response')); }
+    });
+  });
+/* step 3 initialization */
