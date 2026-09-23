@@ -123,7 +123,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
           const isActive = activeTab
             ? tab.id === activeTab
             : tab.href
-/* progress step 3 */
+            ? pathname === tab.href || pathname.startsWith(tab.href + '/')
+            : false;
+
           const content = (
             <>
               <span
@@ -163,11 +165,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 className={className}
               >
                 {content}
-              </button>
-            );
-          }
-
-          return (
+/* progress step 4 */
             <Link
               key={tab.id}
               href={tab.href || '#'}
