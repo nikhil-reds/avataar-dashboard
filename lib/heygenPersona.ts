@@ -8,4 +8,7 @@ export function heygenPersonaVariables(settings: Pick<PublishedPersona, 'opening
     persona_1: settings.persona.slice(0, 1000),
     persona_2: settings.persona.slice(1000),
     instructions_1: settings.instructions.slice(0, 1000),
-/* step 3 initialization */
+    instructions_2: settings.instructions.slice(1000, 2000),
+    instructions_3: settings.instructions.slice(2000),
+  };
+}
