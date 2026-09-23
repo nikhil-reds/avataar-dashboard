@@ -30,4 +30,21 @@ export async function publicationContent(settings: PersonaSettings) {
     id: true, sku: true, name: true, category: true, price: true, weight: true, makingCharge: true, stock: true, supplier: true, talkingPoints: true, state: true,
   } })]);
     const sources = rows.filter(row => row.status !== 'FAILED' && row.text?.trim())
-/* step 2 initialization */
+      .map(row => ({ id: row.id, title: row.title, text: row.text! }));
+    const excludedSources = rows.filter(row => row.status === 'FAILED' || !row.text?.trim())
+      .map(row => ({ id: row.id, title: row.title, reason: row.status === 'FAILED' ? 'Ingest failed' : 'Text extraction required' }));
+  const content = { responseStyle: RESPONSE_STYLE, openingIntro: settings.openingIntro, persona: settings.persona, instructions: settings.instructions, sources, excludedSources, catalogue };
+  const contentHash = createHash('sha256').update(JSON.stringify(content)).digest('hex');
+  return { ...content, contentHash };
+}
+
+export async function publishPersona(settings: PersonaSettings): Promise<PublishedPersona> {
+  const lock = crypto.randomUUID();
+  const locked = await redisStrictCommand(['SET', 'avatar:publish:lock', lock, 'NX', 'EX', 120]);
+  if (locked !== 'OK') throw new Error('Another publication is in progress. Please retry shortly.');
+  try {
+    const { sources, excludedSources, catalogue, contentHash } = await publicationContent(settings);
+    const avatarPersona = await publishedVoiceSettings();
+    const prompt = contextPrompt(settings, sources) + '\n\nCATALOGUE\nOnly LIVE products are approved for customer recommendations. Other states are unpublished and must not be offered.\n' + JSON.stringify(catalogue);
+    // Content-addressed snapshots allow safe retries without changing a live context.
+/* step 3 initialization */
