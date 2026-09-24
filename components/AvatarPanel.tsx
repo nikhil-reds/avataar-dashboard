@@ -396,6 +396,7 @@ export default function AvatarPanel({
 
       onSessionReady?.((text: string) => session.message(text));
     } catch (err) {
+      console.error('[LiveAvatar] failed to start session', err);
       setError(err instanceof Error ? err.message : 'Failed to start session');
       sessionRef.current = null;
       sessionTokenRef.current = null;

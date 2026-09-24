@@ -1,13 +1,17 @@
 import { NextResponse } from 'next/server';
 import { LogKind, LogStatus } from '@/app/generated/prisma';
 import { recordActivity } from '@/lib/activity';
-import { getPublishedPersona } from '@/lib/publishedPersona';
+import {
+  getPublishedDynamicVariables,
+  getPublishedPersona,
+} from '@/lib/publishedPersona';
 import {
   formatAvatarConfigLog,
   liveAvatarConfig,
   resolveAvatarConfig,
   summarizeAvatarConfig,
 } from '@/lib/liveavatarConfig';
+import { publishedVoiceSettings } from '@/lib/heygenContext';
 
 const API_BASE = 'https://api.liveavatar.com';
 
@@ -41,6 +45,14 @@ export async function POST() {
   let published;
   try { published = await getPublishedPersona(); }
   catch { return NextResponse.json({ error: 'Cannot read the published avatar context from Redis. Please retry.' }, { status: 503 }); }
+  if (voiceAgentId && (!published?.contextId || !published.avatarPersona)) {
+    return NextResponse.json(
+      { error: 'No published avatar context is available. Publish the saved persona and catalogue before starting the avatar.' },
+      { status: 409 }
+    );
+  }
+  // The published context owns the intro and knowledge. A configured LiveAvatar
+  // agent contributes its current voice/model settings to that inline persona.
   const usePublishedContext = Boolean(published?.contextId && published.avatarPersona);
   const useVoiceAgent = !usePublishedContext && Boolean(voiceAgentId);
   const useHeyGenContext = !usePublishedContext && Boolean(contextId) && !useVoiceAgent;
@@ -50,20 +62,29 @@ export async function POST() {
     avatar_id: avatarId,
   };
 
+  if (!useVoiceAgent && voiceId && !(await configuredVoiceExists(apiKey, voiceId))) {
+    return NextResponse.json(
+      { error: `LIVEAVATAR_VOICE_ID ${voiceId} was not found in LiveAvatar` },
+      { status: 400 }
+    );
+  }
+
   if (usePublishedContext) {
-    // Inline FULL mode attaches our versioned context while preserving the agent's voice/model.
-    body.avatar_persona = published!.avatarPersona;
+    const agentSettings = voiceAgentId ? await publishedVoiceSettings() : {};
+    body.avatar_persona = {
+      ...published!.avatarPersona,
+      ...agentSettings,
+      context_id: published!.contextId,
+      ...(voiceId ? { voice_id: voiceId } : {}),
+    };
+    const dynamicVariables = await getPublishedDynamicVariables(published!);
+    if (Object.keys(dynamicVariables).length > 0) {
+      body.dynamic_variables = dynamicVariables;
+    }
   } else if (useVoiceAgent) {
     body.voice_agent = { id: voiceAgentId, language: 'en' };
   } else {
     body.avatar_persona = { language: 'en' };
-
-    if (voiceId && !(await configuredVoiceExists(apiKey, voiceId))) {
-      return NextResponse.json(
-        { error: `VOICE_ID ${voiceId} was not found in LiveAvatar` },
-        { status: 400 }
-      );
-    }
 
     if (voiceId) {
       (body.avatar_persona as Record<string, unknown>).voice_id = voiceId;
