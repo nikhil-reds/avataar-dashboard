@@ -144,10 +144,13 @@ export async function getServiceHealth(): Promise<ServiceHealthItem[]> {
     } catch {}
   }
 
-  const avatarConfigured = Boolean(liveAvatarConfig().apiKey);
+  const avatarConfig = liveAvatarConfig();
+  const avatarConfigured = Boolean(avatarConfig.apiKey);
   const redis = redisStatus();
 
-  const agentConfigured = avatarConfigured && Boolean(liveAvatarConfig().voiceAgentId || liveAvatarConfig().contextId);
+  const agentConfigured = avatarConfigured && Boolean(
+    avatarConfig.voiceAgentId || avatarConfig.contextId || (avatarConfig.avatarId && avatarConfig.voiceId)
+  );
 
   return [
     {
@@ -167,8 +170,8 @@ export async function getServiceHealth(): Promise<ServiceHealthItem[]> {
     {
       name: 'HeyGen conversation agent',
       note: agentConfigured
-        ? 'Answers and voice handled by the configured HeyGen agent'
-        : 'Configure a LiveAvatar voice agent or context',
+        ? 'HeyGen FULL mode configured for answers and voice'
+        : 'Configure LIVEAVATAR_AVATAR_ID and LIVEAVATAR_VOICE_ID',
       metric: agentConfigured ? 'configured' : 'not configured',
       color: agentConfigured ? GREEN : GREY,
     },

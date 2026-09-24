@@ -23,6 +23,35 @@ export async function getPublishedPersona(): Promise<PublishedPersona | null> {
   const raw = await redisStrictCommand<string | null>(['GET', PUBLISHED_PERSONA_KEY]);
   return raw ? JSON.parse(raw) as PublishedPersona : null;
 }
+
+/**
+ * LiveAvatar treats every `${name}` token in a context as a required session
+ * variable. Derive those names from the immutable publication snapshot so callers
+ * do not need one environment variable per prompt placeholder.
+ */
+export async function getPublishedDynamicVariables(
+  published: PublishedPersona
+): Promise<Record<string, string>> {
+  const raw = await redisStrictCommand<string | null>([
+    'GET',
+    `avatar:publication:${published.version}`,
+  ]);
+  if (!raw) return {};
+
+  const snapshot = JSON.parse(raw) as {
+    prompt?: string;
+    openingIntro?: string;
+  };
+  const names = new Set<string>();
+  const placeholder = /\$\{([A-Za-z_][A-Za-z0-9_]*)\}/g;
+
+  for (const text of [snapshot.prompt, snapshot.openingIntro]) {
+    if (!text) continue;
+    for (const match of text.matchAll(placeholder)) names.add(match[1]);
+  }
+
+  return Object.fromEntries([...names].map((name) => [name, '']));
+}
 export async function publicationContent(settings: PersonaSettings) {
   const [rows, catalogue] = await prisma.$transaction([prisma.ingestSource.findMany({
       orderBy: { id: 'asc' }, select: { id: true, title: true, text: true, status: true },
