@@ -22,10 +22,19 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 
 ## Avatar conversation flow
 
-HeyGen handles recognition, answers and voice in FULL mode using the configured
-`LIVEAVATAR_VOICE_AGENT_ID` (or `VOICE_AGENT_ID`). The server uses
-`LIVEAVATAR_API_KEY` (or `API_KEY`); keys never go to the browser.
-A voice ID selects a voice; a voice agent ID selects the conversational agent.
+HeyGen handles recognition, answers and voice in FULL mode. Configure these three
+LiveAvatar variables in the root `.env` file:
+
+```dotenv
+LIVEAVATAR_AVATAR_ID=your-avatar-id
+LIVEAVATAR_API_KEY=your-api-key
+LIVEAVATAR_VOICE_AGENT_ID=your-voice-agent-id
+```
+
+The API key stays on the server. The configured voice agent supplies its voice and
+model settings. The published dashboard context supplies the opening intro, persona,
+instructions, sources and catalogue. Restart the development server after changing
+environment variables.
 
 Start the local data services:
 
