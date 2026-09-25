@@ -8,7 +8,7 @@ export async function POST(request: Request) {
       message: 'PageIndex document retrieval endpoint',
       received: body 
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
   }
 }

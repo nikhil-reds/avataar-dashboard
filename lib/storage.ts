@@ -27,8 +27,8 @@ export function checksumOf(bytes: Buffer): string {
  * arbitrary files off the server, so it is checked rather than assumed.
  */
 function resolvePath(key: string): string {
-  const absolute = path.resolve(STORAGE_ROOT, key);
-  const root = path.resolve(STORAGE_ROOT);
+  const absolute = path.resolve(/*turbopackIgnore: true*/ STORAGE_ROOT, key);
+  const root = path.resolve(/*turbopackIgnore: true*/ STORAGE_ROOT);
 
   if (absolute !== root && !absolute.startsWith(root + path.sep)) {
     throw new Error(`Storage key escapes the storage root: ${key}`);
@@ -54,7 +54,7 @@ export async function putObject(bytes: Buffer, ext: string): Promise<string> {
 
 export async function objectSize(key: string): Promise<number | null> {
   try {
-    const info = await stat(resolvePath(key));
+    const info = await stat(/*turbopackIgnore: true*/ resolvePath(key));
     return info.size;
   } catch {
     return null;
@@ -63,7 +63,7 @@ export async function objectSize(key: string): Promise<number | null> {
 
 /** Web stream for a route handler response, so a large file is not buffered whole. */
 export function objectStream(key: string): ReadableStream<Uint8Array> {
-  const nodeStream = createReadStream(resolvePath(key));
+  const nodeStream = createReadStream(/*turbopackIgnore: true*/ resolvePath(key));
   return Readable.toWeb(nodeStream) as ReadableStream<Uint8Array>;
 }
 
